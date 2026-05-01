@@ -1,19 +1,24 @@
-import sbt.Keys.libraryDependencies
-import sbt._
+import play.sbt.PlayImport.jdbc
+import sbt.*
 
 object AppDependencies {
 
   private val bootstrapVersion = "10.7.0"
-  
+  val oraVersion = "19.3.0.0"
 
-  val compile = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-backend-play-30"  % bootstrapVersion
+  val compile: Seq[ModuleID] = Seq(
+    "uk.gov.hmrc"    %% "bootstrap-backend-play-30" % bootstrapVersion,
+    "com.oracle.jdbc" % "ojdbc8"                    % oraVersion,
+    "com.oracle.jdbc" % "orai18n"                   % oraVersion,
+    "org.scala-lang"  % "scala-library"             % "2.13.18",
+    jdbc
   )
 
-  val test = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-test-play-30"     % bootstrapVersion            % Test,
-    
+  val test: Seq[ModuleID] = Seq(
+    "uk.gov.hmrc"       %% "bootstrap-test-play-30" % bootstrapVersion % Test,
+    "org.scalatest"     %% "scalatest"              % "3.2.20"         % Test,
+    "org.scalatestplus" %% "scalacheck-1-17"        % "3.2.18.0"       % Test
   )
 
-  val it = Seq.empty
+  val it: Seq[Nothing] = Seq.empty
 }
