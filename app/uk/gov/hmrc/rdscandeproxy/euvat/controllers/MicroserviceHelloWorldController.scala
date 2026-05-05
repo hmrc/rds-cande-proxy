@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy
+package uk.gov.hmrc.rdscandeproxy.euvat.controllers
 
-import play.api.inject.{Binding, Module as AppModule}
-import play.api.{Configuration, Environment}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.Clock
+import javax.inject.{Inject, Singleton}
 
-class Module extends AppModule:
+@Singleton()
+class MicroserviceHelloWorldController @Inject() (
+  cc: ControllerComponents
+) extends BackendController(cc):
 
-  override def bindings(
-    environment: Environment,
-    configuration: Configuration
-  ): Seq[Binding[_]] =
-    List(
-      bind[Clock].toInstance(Clock.systemDefaultZone) // inject if current time needs to be controlled in unit tests
-    )
+  val hello: Action[AnyContent] =
+    Action:
+      implicit request => Ok("Hello world")

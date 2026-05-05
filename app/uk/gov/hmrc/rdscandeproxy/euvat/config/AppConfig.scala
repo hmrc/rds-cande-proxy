@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy.controllers
-
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+package uk.gov.hmrc.rdscandeproxy.euvat.config
 
 import javax.inject.{Inject, Singleton}
+import play.api.Configuration
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject() (
-  cc: ControllerComponents
-) extends BackendController(cc):
+@Singleton
+class AppConfig @Inject() (config: Configuration):
 
-  val hello: Action[AnyContent] =
-    Action:
-      implicit request => Ok("Hello world")
+  val appName: String = config.get[String]("appName")
