@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy.euvat.controllers
+package uk.gov.hmrc.rdscandeproxy.euvat.services
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.Logging
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeDataSource
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
+import scala.concurrent.Future
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject() (
-  cc: ControllerComponents
-) extends BackendController(cc):
+class EuVatService @Inject() (euVatCandeSource: EuVatCandeDataSource) extends Logging {
 
-  val hello: Action[AnyContent] =
-    Action:
-      implicit request => Ok("Hello world")
+  def retrieveTraderByVrn(vrn: Int): Future[TradersKnownFacts] =
+    println("********* calling repository")
+    euVatCandeSource.getTraderByVrn(vrn)
+
+}
