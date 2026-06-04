@@ -67,8 +67,11 @@ class DefaultAuthAction @Inject() (
           }
       }.flatten
 
-    // boolean = found non‑empty identifier
-    (identifiers.isDefined, identifiers.get._1, identifiers.get._2)
+    identifiers match {
+      case Some((idName, idValue)) => (true, idName, idValue)
+
+      case None => throw new UnauthorizedException("Missing or empty enrolment identifier")
+    }
   }
 
   override def invokeBlock[A](
