@@ -29,7 +29,7 @@ class Module extends AppModule:
     environment: Environment,
     configuration: Configuration
   ): Seq[Binding[_]] =
-    lazy val candeStubbed = configuration.get[Boolean]("feature-switch.rds-cande-stubbed")
+    lazy val candeStubbed = configuration.get[Boolean]("feature-switch.cande-stubbed")
     lazy val datasource = if (candeStubbed) classOf[EuVatStub] else classOf[EuVatCandeRepository]
 
     List(
