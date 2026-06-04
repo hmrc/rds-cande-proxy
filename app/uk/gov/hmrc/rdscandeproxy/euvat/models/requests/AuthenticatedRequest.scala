@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy.actions
+package uk.gov.hmrc.rdscandeproxy.euvat.models.requests
 
 import play.api.mvc.{Request, WrappedRequest}
 import uk.gov.hmrc.http.SessionId
 
 case class AuthenticatedRequest[A](
   private val request: Request[A],
-  internalId: String,
-  credentialId: String,
-  sessionId: SessionId
-) extends WrappedRequest[A](request)
+  credId: String,
+  sessionId: SessionId,
+  identifierName: String,
+  identifierValue: String
+) extends WrappedRequest[A](request) {
+
+  lazy val sessionData =
+    s"credId = $credId, sessionId = $sessionId, identifierName = $identifierName, identifierValue = $identifierValue"
+}

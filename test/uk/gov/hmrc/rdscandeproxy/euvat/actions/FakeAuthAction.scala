@@ -18,7 +18,7 @@ package uk.gov.hmrc.rdscandeproxy.euvat.actions
 
 import play.api.mvc.*
 import uk.gov.hmrc.http.SessionId
-import uk.gov.hmrc.rdscandeproxy.actions.{AuthAction, AuthenticatedRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.AuthenticatedRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +29,7 @@ class FakeAuthAction @Inject() (bodyParsers: PlayBodyParsers) extends AuthAction
 
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] =
     block(
-      AuthenticatedRequest(request, "internalId", "credId", SessionId("sessionId"))
+      AuthenticatedRequest(request, "credId", SessionId("sessionId"), "idKey", "idValue")
     )
 
   override protected def executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global

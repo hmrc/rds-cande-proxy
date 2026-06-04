@@ -27,20 +27,19 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 trait EuVatCandeDataSource {
-  def getTraderByVrn(vrn: Int): Future[TradersKnownFacts]
+  def getTraderByVrn(vrn: String): Future[TradersKnownFacts]
 }
 class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContext) extends EuVatCandeDataSource with Logging {
 
-  def getTraderByVrn(vrn: Int): Future[TradersKnownFacts] = {
-
-    logger.info(s"************* getTraderByVrn - VRN: $vrn")
+  def getTraderByVrn(vrn: String): Future[TradersKnownFacts] = {
+    logger.info(s"************* calling SP getTraderByVrn - VRN: $vrn")
     Future {
       db.withConnection { connection =>
         val knownFactsStatement: CallableStatement = connection.prepareCall("{call EUVAT_FILING_DC_KF.getTraderByVRN(?, ?)}")
 
         try {
           // Set input parameters
-          knownFactsStatement.setInt("p_vrn", 999900106) // VRN
+          knownFactsStatement.setInt("p_vrn", vrn.toInt) // VRN
           // Register output parameters
           knownFactsStatement.registerOutParameter("p_trader", OracleTypes.CURSOR) // p_trader
           // Execute the stored procedure
@@ -52,16 +51,18 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
           try {
             if (knownFactsResult.next()) {
               TradersKnownFacts(
-                vatRegNumber       = knownFactsResult.getInt("vat_reg_number"),
-                traderName         = Option(knownFactsResult.getString("trader_name")).orNull,
-                addressLine1       = Option(knownFactsResult.getString("bus_address_1")).orNull,
-                addressLine2       = Option(knownFactsResult.getString("bus_address_2")).orNull,
-                addressLine3       = Option(knownFactsResult.getString("bus_address_3")).orNull,
-                addressLine4       = Option(knownFactsResult.getString("bus_address_4")).orNull,
-                addressLine5       = Option(knownFactsResult.getString("bus_address_5")).orNull,
-                postCode           = Option(knownFactsResult.getString("bus_postcode")).orNull,
-                tradeClass         = Option(knownFactsResult.getString("trade_class")).orNull,
-                dateOfRegistration = knownFactsResult.getTimestamp("date_of_reg").toLocalDateTime,
+                vatRegNumber = knownFactsResult.getInt("vat_reg_number"),
+                traderName   = Option(knownFactsResult.getString("trader_name")).orNull,
+                addressLine1 = Option(knownFactsResult.getString("bus_address_1")).orNull,
+                addressLine2 = Option(knownFactsResult.getString("bus_address_2")).orNull,
+                addressLine3 = Option(knownFactsResult.getString("bus_address_3")).orNull,
+                addressLine4 = Option(knownFactsResult.getString("bus_address_4")).orNull,
+                addressLine5 = Option(knownFactsResult.getString("bus_address_5")).orNull,
+                postCode     = Option(knownFactsResult.getString("bus_postcode")).orNull,
+                tradeClass   = Option(knownFactsResult.getString("trade_class")).orNull,
+                dateOfRegistration = Option(knownFactsResult.getTimestamp("date_of_reg"))
+                  .map(_.toLocalDateTime)
+                  .getOrElse(LocalDateTime.MIN),
                 dateOfDeregistration = Option(knownFactsResult.getTimestamp("date_of_dereg"))
                   .map(_.toLocalDateTime)
                   .getOrElse(LocalDateTime.MIN),

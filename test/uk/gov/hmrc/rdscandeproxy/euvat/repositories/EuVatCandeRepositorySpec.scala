@@ -62,7 +62,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
 
   "getTraderByVrn" should "return KnownFacts with correct data" in {
     // Arrange
-    val vrn = 123
+    val vrn = "123"
 
     val knownFactsResponse: TradersKnownFacts =
       TradersKnownFacts(

@@ -61,13 +61,13 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         when(mockConnector.getTraderByVrn(any()))
           .thenReturn(Future.successful(emptyKnownFactsResponse))
 
-        val result = service.retrieveTraderByVrn(123).futureValue
+        val result = service.retrieveTraderByVrn("123").futureValue
         result shouldBe emptyKnownFactsResponse
 
       "retrieving traders known facts" in:
         when(mockConnector.getTraderByVrn(any()))
           .thenReturn(Future.successful(KnownFactsResponse))
-        val result = service.retrieveTraderByVrn(123).futureValue
+        val result = service.retrieveTraderByVrn("123").futureValue
         result shouldBe KnownFactsResponse
 
     "fail" when:
@@ -75,5 +75,5 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         when(mockConnector.getTraderByVrn(any()))
           .thenReturn(Future.failed(new Exception("bang")))
 
-        val result = intercept[Exception](service.retrieveTraderByVrn(123).futureValue)
+        val result = intercept[Exception](service.retrieveTraderByVrn("123").futureValue)
         result.getMessage should include("bang")

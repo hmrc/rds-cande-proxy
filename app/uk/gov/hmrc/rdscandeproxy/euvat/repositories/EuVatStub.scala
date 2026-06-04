@@ -41,9 +41,9 @@ class EuVatStub @Inject() () extends EuVatCandeDataSource with Logging:
     "N",
     1
   )
-  def getTraderByVrn(vrn: Int): Future[TradersKnownFacts] = {
+  def getTraderByVrn(vrn: String): Future[TradersKnownFacts] = {
     println(s"********** calling stub data with vrn: $vrn")
-    if (vrn.toString.endsWith("90")) {
+    if (vrn.endsWith("90")) {
       Future.successful(knownFactsResponse) // Can be updated later
     } else {
       Future.successful(knownFactsResponse)

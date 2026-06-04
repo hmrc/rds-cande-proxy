@@ -18,7 +18,7 @@ package uk.gov.hmrc.rdscandeproxy
 
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.rdscandeproxy.actions.{AuthAction, DefaultAuthAction}
+import uk.gov.hmrc.rdscandeproxy.euvat.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.{EuVatCandeDataSource, EuVatCandeRepository, EuVatStub}
 
 import java.time.Clock

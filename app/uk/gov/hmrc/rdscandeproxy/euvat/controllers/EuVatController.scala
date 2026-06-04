@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.rdscandeproxy.actions.AuthAction
+import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import javax.inject.Inject
@@ -33,9 +33,8 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
   def retrieveTraderByVrn(): Action[AnyContent] =
     authorise.async:
       implicit request =>
-        println("********* calling service")
         euVatService
-          .retrieveTraderByVrn(123) // TODO - dummy vrn
+          .retrieveTraderByVrn(request.identifierValue)
           .map(result =>
             println(s"********* response received from service: $result")
             Ok(Json.toJson(result))
