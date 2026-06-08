@@ -33,14 +33,19 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
   def retrieveTraderByVrn(): Action[AnyContent] =
     authorise.async:
       implicit request =>
+        val vrn = request.identifierValue
         euVatService
-          .retrieveTraderByVrn(request.identifierValue)
-          .map(result =>
-            println(s"********* response received from service: $result")
-            Ok(Json.toJson(result))
-          )
+          .retrieveTraderByVrn(vrn)
+          .map {
+            case Some(trader) =>
+              logger.info(s"Trader found for VRN: $vrn")
+              Ok(Json.toJson(trader))
+            case None =>
+              logger.warn(s"No trader known facts found for VRN: $vrn")
+              NotFound(Json.obj("message" -> s"No trader found for VRN $vrn"))
+          }
           .recover { case ex: Exception =>
-            logger.warn("Error while retrieving traders known facts from oracle database", ex)
+            logger.error("Error while retrieving traders known facts from oracle database", ex)
             InternalServerError("Failed to retrieve traders known facts")
           }
 

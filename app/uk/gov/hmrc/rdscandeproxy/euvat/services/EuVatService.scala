@@ -25,8 +25,10 @@ import scala.concurrent.Future
 
 class EuVatService @Inject() (euVatCandeSource: EuVatCandeDataSource) extends Logging {
 
-  def retrieveTraderByVrn(vrn: String): Future[TradersKnownFacts] =
-    println(s"********* calling repository, vrn: $vrn")
+  def retrieveTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]] = {
+    logger.info(s"Calling repository for VRN: $vrn")
+
     euVatCandeSource.getTraderByVrn(vrn)
+  }
 
 }

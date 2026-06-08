@@ -35,6 +35,5 @@ class Module extends AppModule:
     List(
       bind[AuthAction].to(classOf[DefaultAuthAction]),
       bind[EuVatCandeDataSource].to(datasource),
-//      bind[EuVatCandeDataSource].to(classOf[EuVatCandeRepository]),
       bind[Clock].toInstance(Clock.systemDefaultZone) // inject if current time needs to be controlled in unit tests
     )

@@ -86,7 +86,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     when(mockCallableStatement.getObject("p_trader", classOf[ResultSet])).thenReturn(mockResultSet)
 
     // Mock the ResultSet to return the correct data
-    when(mockResultSet.next()).thenReturn(true).thenReturn(false) // First call returns true, then false (no more rows)
+    when(mockResultSet.next()).thenReturn(true)
     when(mockResultSet.getInt("vat_reg_number")).thenReturn(123456789)
     when(mockResultSet.getString("trader_name")).thenReturn("TestData")
     when(mockResultSet.getString("bus_address_1")).thenReturn("Line 1")
@@ -105,7 +105,19 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = repository.getTraderByVrn(vrn).futureValue
 
     // Assert
-    result shouldBe knownFactsResponse
+    result shouldBe Some(knownFactsResponse)
+  }
+
+  "getTraderByVrn" should "return None" in {
+    val vrn = "123"
+    // Mocking stored procedure behavior for pTotalRecords and pDDSummary
+    when(mockCallableStatement.getInt("p_vrn")).thenReturn(1)
+    when(mockCallableStatement.getObject("p_trader", classOf[ResultSet])).thenReturn(mockResultSet)
+
+    when(mockResultSet.next()).thenReturn(false)
+    val result = repository.getTraderByVrn(vrn).futureValue
+
+    result shouldBe None
   }
 
 }

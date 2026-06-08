@@ -59,16 +59,16 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     "succeed" when:
       "retrieving no Known facts" in:
         when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(emptyKnownFactsResponse))
+          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
 
         val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe emptyKnownFactsResponse
+        result shouldBe Some(emptyKnownFactsResponse)
 
       "retrieving traders known facts" in:
         when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(KnownFactsResponse))
+          .thenReturn(Future.successful(Some(KnownFactsResponse)))
         val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe KnownFactsResponse
+        result shouldBe Some(KnownFactsResponse)
 
     "fail" when:
       "retrieving Direct Debits" in:

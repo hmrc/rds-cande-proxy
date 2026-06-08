@@ -21,62 +21,56 @@ import play.api.Logging
 import play.api.db.Database
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
 
-import java.sql.{CallableStatement, ResultSet}
+import java.sql.ResultSet
 import java.time.LocalDateTime
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Using
 
 trait EuVatCandeDataSource {
-  def getTraderByVrn(vrn: String): Future[TradersKnownFacts]
+  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]]
 }
 class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContext) extends EuVatCandeDataSource with Logging {
 
-  def getTraderByVrn(vrn: String): Future[TradersKnownFacts] = {
-    logger.info(s"************* calling SP getTraderByVrn - VRN: $vrn")
+  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]] = {
+    logger.info(s"************* calling stored procedure getTraderByVrn for VRN: $vrn")
     Future {
       db.withConnection { connection =>
-        val knownFactsStatement: CallableStatement = connection.prepareCall("{call EUVAT_FILING_DC_KF.getTraderByVRN(?, ?)}")
+        Using.resource(connection.prepareCall("{call EUVAT_FILING_DC_KF.getTraderByVRN(?, ?)}")) { stmt =>
+          stmt.setInt("p_vrn", vrn.toInt)
+          stmt.registerOutParameter("p_trader", OracleTypes.CURSOR)
 
-        try {
-          // Set input parameters
-          knownFactsStatement.setInt("p_vrn", vrn.toInt) // VRN
-          // Register output parameters
-          knownFactsStatement.registerOutParameter("p_trader", OracleTypes.CURSOR) // p_trader
-          // Execute the stored procedure
-          knownFactsStatement.execute()
-          // Retrieve output parameters
-          val knownFactsResult = knownFactsStatement.getObject("p_trader", classOf[ResultSet]) // p_trader (REF CURSOR)
-          logger.info(s"***** DB response from SQL stored procedure: $knownFactsResult")
+          stmt.execute()
 
-          try {
-            if (knownFactsResult.next()) {
-              TradersKnownFacts(
-                vatRegNumber = knownFactsResult.getInt("vat_reg_number"),
-                traderName   = Option(knownFactsResult.getString("trader_name")).orNull,
-                addressLine1 = Option(knownFactsResult.getString("bus_address_1")).orNull,
-                addressLine2 = Option(knownFactsResult.getString("bus_address_2")).orNull,
-                addressLine3 = Option(knownFactsResult.getString("bus_address_3")).orNull,
-                addressLine4 = Option(knownFactsResult.getString("bus_address_4")).orNull,
-                addressLine5 = Option(knownFactsResult.getString("bus_address_5")).orNull,
-                postCode     = Option(knownFactsResult.getString("bus_postcode")).orNull,
-                tradeClass   = Option(knownFactsResult.getString("trade_class")).orNull,
-                dateOfRegistration = Option(knownFactsResult.getTimestamp("date_of_reg"))
-                  .map(_.toLocalDateTime)
-                  .getOrElse(LocalDateTime.MIN),
-                dateOfDeregistration = Option(knownFactsResult.getTimestamp("date_of_dereg"))
-                  .map(_.toLocalDateTime)
-                  .getOrElse(LocalDateTime.MIN),
-                missingTraderIndicator = Option(knownFactsResult.getString("missing_trader_ind")).orNull,
-                singleMarketIndicator  = knownFactsResult.getInt("ph_sem_trader_ind")
-              )
+          val rs = stmt.getObject("p_trader", classOf[ResultSet])
+          Using.resource(rs) { cursor =>
+            if (!cursor.next()) {
+              logger.warn(s"No trader known facts returned from stored procedure for vrn: $vrn")
+              None
             } else {
-              logger.error("********* getTraderByVrn - issue retrieving known facts from rds cande database")
-              null
+              Some(
+                TradersKnownFacts(
+                  vatRegNumber           = cursor.getInt("vat_reg_number"),
+                  traderName             = Option(cursor.getString("trader_name")).orNull,
+                  addressLine1           = Option(cursor.getString("bus_address_1")).orNull,
+                  addressLine2           = Option(cursor.getString("bus_address_2")).orNull,
+                  addressLine3           = Option(cursor.getString("bus_address_3")).orNull,
+                  addressLine4           = Option(cursor.getString("bus_address_4")).orNull,
+                  addressLine5           = Option(cursor.getString("bus_address_5")).orNull,
+                  postCode               = Option(cursor.getString("bus_postcode")).orNull,
+                  tradeClass             = Option(cursor.getString("trade_class")).getOrElse(""),
+                  dateOfRegistration     = Option(cursor.getTimestamp("date_of_reg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
+                  dateOfDeregistration   = Option(cursor.getTimestamp("date_of_dereg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
+                  missingTraderIndicator = Option(cursor.getString("missing_trader_ind")).orNull,
+                  singleMarketIndicator  = cursor.getInt("ph_sem_trader_ind")
+                )
+              )
             }
-          } finally knownFactsResult.close()
-        } finally knownFactsStatement.close()
+          }
+        }
 
       }
+
     }
   }
 }

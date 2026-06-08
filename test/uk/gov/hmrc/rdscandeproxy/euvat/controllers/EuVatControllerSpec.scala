@@ -38,7 +38,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     "retrieveDirectDebits" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
         when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(KnownFactsResponse))
+          .thenReturn(Future.successful(Some(KnownFactsResponse)))
         val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
 
         status(result)        shouldBe OK
@@ -48,7 +48,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
       "return 200 and an empty records when no data returned from DB" in new SetUp {
         when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(emptyKnownFactsResponse))
+          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
         val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
 
         status(result)        shouldBe OK
