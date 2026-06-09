@@ -18,12 +18,12 @@ package uk.gov.hmrc.rdscandeproxy.euvat.services
 
 import play.api.Logging
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
-import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeDataSource
+import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
 import scala.concurrent.Future
 
-class EuVatService @Inject() (euVatCandeSource: EuVatCandeDataSource) extends Logging {
+class EuVatService @Inject() (euVatCandeSource: EuVatCandeRepository) extends Logging {
 
   def retrieveTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]] = {
     logger.info(s"Calling repository for VRN: $vrn")
