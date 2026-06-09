@@ -19,7 +19,6 @@ package uk.gov.hmrc.rdscandeproxy
 import play.api.inject.{Binding, Module as AppModule}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.{AuthAction, DefaultAuthAction}
-import uk.gov.hmrc.rdscandeproxy.euvat.repositories.{EuVatCandeDataSource, EuVatCandeRepository, EuVatStub}
 
 import java.time.Clock
 
@@ -29,11 +28,7 @@ class Module extends AppModule:
     environment: Environment,
     configuration: Configuration
   ): Seq[Binding[_]] =
-    lazy val candeStubbed = configuration.get[Boolean]("feature-switch.cande-stubbed")
-    lazy val datasource = if (candeStubbed) classOf[EuVatStub] else classOf[EuVatCandeRepository]
-
     List(
       bind[AuthAction].to(classOf[DefaultAuthAction]),
-      bind[EuVatCandeDataSource].to(datasource),
       bind[Clock].toInstance(Clock.systemDefaultZone) // inject if current time needs to be controlled in unit tests
     )

@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
-import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatStub
+import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.global
@@ -32,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar with IntegrationPatience:
 
   implicit val ec: ExecutionContext = global
-  private val mockConnector = mock[EuVatStub]
+  private val mockConnector = mock[EuVatCandeRepository]
   private val service = new EuVatService(mockConnector)
 
   val emptyKnownFactsResponse: TradersKnownFacts =

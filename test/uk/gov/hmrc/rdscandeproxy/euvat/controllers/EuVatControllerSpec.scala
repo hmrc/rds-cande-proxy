@@ -33,9 +33,9 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class EuVatControllerSpec extends SpecBase with MockitoSugar {
-  "DirectDebitController" - {
+  "EuVatController" - {
 
-    "retrieveDirectDebits" - {
+    "retrieveTraderKnownFacts" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
         when(mockEuVatService.retrieveTraderByVrn(any[String]))
           .thenReturn(Future.successful(Some(KnownFactsResponse)))
