@@ -19,7 +19,8 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.Database
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplication, LatestApplicationResponse, TradersKnownFacts}
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -29,6 +30,7 @@ import scala.util.Using
 
 trait EuVatCandeDataSource {
   def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]]
+  def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse]
 }
 class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContext) extends EuVatCandeDataSource with Logging {
 
@@ -71,6 +73,64 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
 
       }
 
+    }
+  }
+
+  def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse] = {
+    logger.info(s"Calling stored procedure getLatestApplications for VRN: ${request.applicantVatRegNumber}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getLatestApplications(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+          storedProcedure =>
+
+            // Set input parameters
+            storedProcedure.setString("p_applicant_vat_reg_number", request.applicantVatRegNumber)
+            storedProcedure.setString("p_refunding_country", request.refundingCountry)
+            storedProcedure.setDate("p_start_date", java.sql.Date.valueOf(request.startDate.toLocalDate))
+            storedProcedure.setDate("p_end_date", java.sql.Date.valueOf(request.endDate.toLocalDate))
+            if (request.representativeId.isEmpty)
+              storedProcedure.setNull("p_representative_id", java.sql.Types.VARCHAR)
+            else
+              storedProcedure.setString("p_representative_id", request.representativeId)
+            storedProcedure.setObject("p_order_by", request.orderBy.orNull)
+            storedProcedure.setObject("p_sort_order", request.sortOrder.orNull)
+            storedProcedure.setObject("p_start_at", request.startAt.orNull)
+            storedProcedure.setInt("p_max_number", request.maxNumber)
+
+            // Register output parameters
+            storedProcedure.registerOutParameter("p_applications", OracleTypes.CURSOR)
+            storedProcedure.registerOutParameter("p_total_applications", OracleTypes.NUMBER)
+
+            // Execute
+            storedProcedure.execute()
+
+            // Retrieve output parameters
+            val totalApplications = storedProcedure.getInt("p_total_applications")
+            val rs = storedProcedure.getObject("p_applications", classOf[ResultSet])
+
+            Using.resource(rs) { cursor =>
+              val applications =
+                Iterator
+                  .continually(cursor.next())
+                  .takeWhile(identity)
+                  .map(_ =>
+                    LatestApplication(
+                      applicationId        = cursor.getLong("application_id"),
+                      refundingCountryCode = cursor.getString("refunding_country_code"),
+                      periodStartDate      = cursor.getTimestamp("period_start_date").toLocalDateTime,
+                      periodEndDate        = cursor.getTimestamp("period_end_date").toLocalDateTime,
+                      applicationNumber    = cursor.getString("application_number"),
+                      applicationStatus    = cursor.getString("application_status"),
+                      submissionStatus     = cursor.getString("submission_status"),
+                      applicationVersion   = cursor.getTimestamp("application_version").toLocalDateTime
+                    )
+                  )
+                  .toList
+
+              LatestApplicationResponse(applications, totalApplications)
+            }
+        }
+      }
     }
   }
 }

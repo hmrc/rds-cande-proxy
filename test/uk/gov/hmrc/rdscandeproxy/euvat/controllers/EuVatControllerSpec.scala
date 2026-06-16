@@ -26,7 +26,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplicationResponse, TradersKnownFacts}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
@@ -66,6 +67,39 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getLatestApplications" - {
+      "return 200 with JSON when service returns latest applications" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any()))
+          .thenReturn(Future.successful(sampleResponse))
+
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(sampleResponse)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+        )
+
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+    }
+
   }
 
   private class SetUp {
@@ -92,6 +126,23 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       )
 
     val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
+
+    val sampleRequest = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = "LV",
+      startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
+      endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
+      representativeId      = "rep123",
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
+
+    val sampleResponse = LatestApplicationResponse(
+      applications     = List.empty,
+      totalApplication = 0
+    )
 
   }
 }

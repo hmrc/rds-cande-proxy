@@ -24,6 +24,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import uk.gov.hmrc.rdscandeproxy.euvat.config.AppConfig
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
 
 import java.sql.{CallableStatement, ResultSet}
@@ -118,6 +119,62 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = repository.getTraderByVrn(vrn).futureValue
 
     result shouldBe None
+  }
+
+  "getLatestApplications" should "return a LatestApplicationResponse with correct data" in {
+    val request = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = "LV",
+      startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
+      endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
+      representativeId      = "rep123",
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
+
+    when(mockCallableStatement.getObject("p_applications", classOf[ResultSet])).thenReturn(mockResultSet)
+    when(mockCallableStatement.getInt("p_total_applications")).thenReturn(1)
+
+    when(mockResultSet.next()).thenReturn(true, false)
+    when(mockResultSet.getLong("application_id")).thenReturn(133L)
+    when(mockResultSet.getString("refunding_country_code")).thenReturn("LV")
+    when(mockResultSet.getTimestamp("period_start_date")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2025, 2, 1, 0, 0)))
+    when(mockResultSet.getTimestamp("period_end_date")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2025, 5, 31, 23, 59)))
+    when(mockResultSet.getString("application_number")).thenReturn("GB0000000000000133")
+    when(mockResultSet.getString("application_status")).thenReturn("D")
+    when(mockResultSet.getString("submission_status")).thenReturn("S")
+    when(mockResultSet.getTimestamp("application_version")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2025, 2, 11, 10, 38)))
+
+    val result = repository.getLatestApplications(request).futureValue
+
+    result.totalApplication                       shouldBe 1
+    result.applications.head.applicationId        shouldBe 133L
+    result.applications.head.refundingCountryCode shouldBe "LV"
+  }
+
+  "getLatestApplications" should "return empty list when no applications found" in {
+    val request = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = "LV",
+      startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
+      endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
+      representativeId      = "rep123",
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
+
+    when(mockCallableStatement.getObject("p_applications", classOf[ResultSet])).thenReturn(mockResultSet)
+    when(mockCallableStatement.getInt("p_total_applications")).thenReturn(0)
+    when(mockResultSet.next()).thenReturn(false)
+
+    val result = repository.getLatestApplications(request).futureValue
+
+    result.totalApplication shouldBe 0
+    result.applications     shouldBe List.empty
   }
 
 }

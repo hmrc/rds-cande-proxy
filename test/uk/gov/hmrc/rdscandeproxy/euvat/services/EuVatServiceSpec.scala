@@ -22,7 +22,8 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplicationResponse, TradersKnownFacts}
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -55,12 +56,28 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       1
     )
 
+  val sampleRequest = LatestApplicationRequest(
+    applicantVatRegNumber = "123456789",
+    refundingCountry      = "LV",
+    startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
+    endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
+    representativeId      = "rep123",
+    maxNumber             = 10,
+    orderBy               = None,
+    sortOrder             = None,
+    startAt               = None
+  )
+
+  val sampleResponse = LatestApplicationResponse(
+    applications     = List.empty,
+    totalApplication = 0
+  )
+
   "EuVatService" should:
     "succeed" when:
       "retrieving no Known facts" in:
         when(mockConnector.getTraderByVrn(any()))
           .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
-
         val result = service.retrieveTraderByVrn("123").futureValue
         result shouldBe Some(emptyKnownFactsResponse)
 
@@ -70,10 +87,21 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         val result = service.retrieveTraderByVrn("123").futureValue
         result shouldBe Some(KnownFactsResponse)
 
+      "retrieving latest applications" in:
+        when(mockConnector.getLatestApplications(any()))
+          .thenReturn(Future.successful(sampleResponse))
+        val result = service.getLatestApplications(sampleRequest).futureValue
+        result shouldBe sampleResponse
+
     "fail" when:
       "retrieving Direct Debits" in:
         when(mockConnector.getTraderByVrn(any()))
           .thenReturn(Future.failed(new Exception("bang")))
-
         val result = intercept[Exception](service.retrieveTraderByVrn("123").futureValue)
+        result.getMessage should include("bang")
+
+      "retrieving latest applications" in:
+        when(mockConnector.getLatestApplications(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.getLatestApplications(sampleRequest).futureValue)
         result.getMessage should include("bang")

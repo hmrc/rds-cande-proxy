@@ -17,7 +17,8 @@
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
 import play.api.Logging
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplicationResponse, TradersKnownFacts}
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
@@ -29,6 +30,12 @@ class EuVatService @Inject() (euVatCandeSource: EuVatCandeRepository) extends Lo
     logger.info(s"Calling repository for VRN: $vrn")
 
     euVatCandeSource.getTraderByVrn(vrn)
+  }
+
+  def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse] = {
+    logger.info(s"Calling repository for latest applications for VRN: ${request.applicantVatRegNumber}")
+
+    euVatCandeSource.getLatestApplications(request)
   }
 
 }

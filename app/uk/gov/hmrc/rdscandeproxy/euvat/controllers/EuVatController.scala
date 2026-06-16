@@ -21,10 +21,11 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatService, cc: ControllerComponents)(implicit ec: ExecutionContext)
     extends BackendController(cc)
@@ -48,5 +49,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             logger.error("Error while retrieving traders known facts from oracle database", ex)
             InternalServerError("Failed to retrieve traders known facts")
           }
+
+  def getLatestApplications: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[LatestApplicationRequest]) match {
+        case Some(latestApplicationRequest) =>
+          euVatService
+            .getLatestApplications(latestApplicationRequest)
+            .map { response =>
+              logger.info(s"Latest applications retrieved for VRN: ${latestApplicationRequest.applicantVatRegNumber}")
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving latest applications from oracle database", ex)
+              InternalServerError("Failed to retrieve latest applications")
+            }
+        case None =>
+          logger.warn("Invalid request body for getLatestApplications")
+          Future.successful(BadRequest("Invalid request body"))
+      }
+    }
 
 }
