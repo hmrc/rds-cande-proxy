@@ -85,13 +85,24 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
 
             // Set input parameters
             storedProcedure.setString("p_applicant_vat_reg_number", request.applicantVatRegNumber)
-            storedProcedure.setString("p_refunding_country", request.refundingCountry)
-            storedProcedure.setDate("p_start_date", java.sql.Date.valueOf(request.startDate.toLocalDate))
-            storedProcedure.setDate("p_end_date", java.sql.Date.valueOf(request.endDate.toLocalDate))
-            if (request.representativeId.isEmpty)
-              storedProcedure.setNull("p_representative_id", java.sql.Types.VARCHAR)
-            else
-              storedProcedure.setString("p_representative_id", request.representativeId)
+            request.refundingCountry match {
+              case Some(country) => storedProcedure.setString("p_refunding_country", country)
+              case None          => storedProcedure.setNull("p_refunding_country", java.sql.Types.VARCHAR)
+            }
+
+            request.startDate match {
+              case Some(date) => storedProcedure.setDate("p_start_date", java.sql.Date.valueOf(date.toLocalDate))
+              case None       => storedProcedure.setNull("p_start_date", java.sql.Types.DATE)
+            }
+
+            request.endDate match {
+              case Some(date) => storedProcedure.setDate("p_end_date", java.sql.Date.valueOf(date.toLocalDate))
+              case None       => storedProcedure.setNull("p_end_date", java.sql.Types.DATE)
+            }
+            request.representativeId match {
+              case Some(repId) => storedProcedure.setString("p_representative_id", repId)
+              case None        => storedProcedure.setNull("p_representative_id", java.sql.Types.VARCHAR)
+            }
             storedProcedure.setObject("p_order_by", request.orderBy.orNull)
             storedProcedure.setObject("p_sort_order", request.sortOrder.orNull)
             storedProcedure.setObject("p_start_at", request.startAt.orNull)

@@ -124,10 +124,10 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
   "getLatestApplications" should "return a LatestApplicationResponse with correct data" in {
     val request = LatestApplicationRequest(
       applicantVatRegNumber = "123456789",
-      refundingCountry      = "LV",
-      startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
-      endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
-      representativeId      = "rep123",
+      refundingCountry      = Some("LV"),
+      startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
+      endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
+      representativeId      = Some("rep123"),
       maxNumber             = 10,
       orderBy               = None,
       sortOrder             = None,
@@ -157,10 +157,10 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
   "getLatestApplications" should "return empty list when no applications found" in {
     val request = LatestApplicationRequest(
       applicantVatRegNumber = "123456789",
-      refundingCountry      = "LV",
-      startDate             = LocalDateTime.of(2025, 2, 1, 0, 0),
-      endDate               = LocalDateTime.of(2025, 5, 31, 0, 0),
-      representativeId      = "rep123",
+      refundingCountry      = Some("LV"),
+      startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
+      endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
+      representativeId      = Some("rep123"),
       maxNumber             = 10,
       orderBy               = None,
       sortOrder             = None,
