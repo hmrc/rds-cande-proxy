@@ -105,7 +105,7 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
             }
             storedProcedure.setObject("p_order_by", request.orderBy.orNull)
             storedProcedure.setObject("p_sort_order", request.sortOrder.orNull)
-            storedProcedure.setObject("p_start_at", request.startAt.orNull)
+            storedProcedure.setObject("p_start_at", request.startAt.getOrElse(0))
             storedProcedure.setInt("p_max_number", request.maxNumber)
 
             // Register output parameters
@@ -137,7 +137,6 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
                     )
                   )
                   .toList
-
               LatestApplicationResponse(applications, totalApplications)
             }
         }
