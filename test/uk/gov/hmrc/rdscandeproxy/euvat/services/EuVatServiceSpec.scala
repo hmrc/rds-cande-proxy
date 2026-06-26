@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplicationResponse, TradersKnownFacts}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -36,27 +36,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   private val mockConnector = mock[EuVatCandeRepository]
   private val service = new EuVatService(mockConnector)
 
-  val emptyKnownFactsResponse: TradersKnownFacts =
-    TradersKnownFacts(0, "", "", "", "", "", "", "", "", LocalDateTime.MIN, LocalDateTime.MIN, "", 0)
-
-  val KnownFactsResponse: TradersKnownFacts =
-    TradersKnownFacts(
-      123456789,
-      "TestData",
-      "Line 1",
-      "Line 2",
-      "Line 3",
-      "Line 4",
-      "Line 5",
-      "NE3 9TG",
-      "7020",
-      LocalDateTime.of(2025, 1, 11, 10, 38),
-      LocalDateTime.of(2026, 1, 11, 10, 38),
-      "N",
-      1
-    )
-
-  val sampleRequest = LatestApplicationRequest(
+  val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
     applicantVatRegNumber = "123456789",
     refundingCountry      = Some("LV"),
     startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
@@ -68,25 +48,13 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     startAt               = None
   )
 
-  val sampleResponse = LatestApplicationResponse(
+  val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
     applications     = List.empty,
     totalApplication = 0
   )
 
   "EuVatService" should:
     "succeed" when:
-      "retrieving no Known facts" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
-        val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe Some(emptyKnownFactsResponse)
-
-      "retrieving traders known facts" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(Some(KnownFactsResponse)))
-        val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe Some(KnownFactsResponse)
-
       "retrieving latest applications" in:
         when(mockConnector.getLatestApplications(any()))
           .thenReturn(Future.successful(sampleResponse))
@@ -94,12 +62,6 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result shouldBe sampleResponse
 
     "fail" when:
-      "retrieving Direct Debits" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.failed(new Exception("bang")))
-        val result = intercept[Exception](service.retrieveTraderByVrn("123").futureValue)
-        result.getMessage should include("bang")
-
       "retrieving latest applications" in:
         when(mockConnector.getLatestApplications(any()))
           .thenReturn(Future.failed(new Exception("bang")))

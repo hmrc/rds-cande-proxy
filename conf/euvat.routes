@@ -1,4 +1,3 @@
 # microservice specific routes
 
-GET     /traders/getKnownFacts     uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.retrieveTraderByVrn()
 POST    /get-latest-application   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getLatestApplications

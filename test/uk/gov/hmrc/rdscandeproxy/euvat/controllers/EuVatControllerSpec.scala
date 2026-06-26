@@ -27,45 +27,15 @@ import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplicationResponse, TradersKnownFacts}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class EuVatControllerSpec extends SpecBase with MockitoSugar {
+
   "EuVatController" - {
-
-    "retrieveTraderKnownFacts" - {
-      "return 200 and a successful response when DB returns records" in new SetUp {
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(Some(KnownFactsResponse)))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
-
-        status(result)        shouldBe OK
-        contentType(result)   shouldBe Some("application/json")
-        contentAsJson(result) shouldBe Json.toJson(KnownFactsResponse)
-      }
-
-      "return 200 and an empty records when no data returned from DB" in new SetUp {
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
-
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(emptyKnownFactsResponse)
-      }
-
-      "return 500 and log error when DB call fails" in new SetUp {
-        val exception = new RuntimeException("DB error")
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.failed(exception))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
-
-        status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to retrieve traders known facts")
-      }
-    }
 
     "getLatestApplications" - {
       "return 200 with JSON when service returns latest applications" in new SetUp {
@@ -104,30 +74,9 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
   private class SetUp {
     val mockEuVatService: EuVatService = mock[EuVatService]
-
-    val emptyKnownFactsResponse: TradersKnownFacts =
-      TradersKnownFacts(0, "", "", "", "", "", "", "", "", LocalDateTime.MIN, LocalDateTime.MIN, "", 0)
-
-    val KnownFactsResponse: TradersKnownFacts =
-      TradersKnownFacts(
-        123456789,
-        "TestData",
-        "Line 1",
-        "Line 2",
-        "Line 3",
-        "Line 4",
-        "Line 5",
-        "NE3 9TG",
-        "7020",
-        LocalDateTime.of(2025, 1, 11, 10, 38),
-        LocalDateTime.of(2026, 1, 11, 10, 38),
-        "N",
-        1
-      )
-
     val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
 
-    val sampleRequest = LatestApplicationRequest(
+    val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
       applicantVatRegNumber = "123456789",
       refundingCountry      = Some("LV"),
       startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
@@ -139,7 +88,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       startAt               = None
     )
 
-    val sampleResponse = LatestApplicationResponse(
+    val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
       applications     = List.empty,
       totalApplication = 0
     )

@@ -18,9 +18,9 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 
 import oracle.jdbc.OracleTypes
 import play.api.Logging
-import play.api.db.Database
+import play.api.db.{Database, NamedDatabase}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplication, LatestApplicationResponse, TradersKnownFacts}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplication, LatestApplicationResponse}
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -28,53 +28,7 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
 
-trait EuVatCandeDataSource {
-  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]]
-  def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse]
-}
-class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContext) extends EuVatCandeDataSource with Logging {
-
-  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]] = {
-    logger.info(s"************* calling stored procedure getTraderByVrn for VRN: $vrn")
-    Future {
-      db.withConnection { connection =>
-        Using.resource(connection.prepareCall("{call EUVAT_FILING_DC_KF.getTraderByVRN(?, ?)}")) { stmt =>
-          stmt.setInt("p_vrn", vrn.toInt)
-          stmt.registerOutParameter("p_trader", OracleTypes.CURSOR)
-
-          stmt.execute()
-
-          val rs = stmt.getObject("p_trader", classOf[ResultSet])
-          Using.resource(rs) { cursor =>
-            if (!cursor.next()) {
-              logger.warn(s"No trader known facts returned from stored procedure for vrn: $vrn")
-              None
-            } else {
-              Some(
-                TradersKnownFacts(
-                  vatRegNumber           = cursor.getInt("vat_reg_number"),
-                  traderName             = Option(cursor.getString("trader_name")).orNull,
-                  addressLine1           = Option(cursor.getString("bus_address_1")).orNull,
-                  addressLine2           = Option(cursor.getString("bus_address_2")).orNull,
-                  addressLine3           = Option(cursor.getString("bus_address_3")).orNull,
-                  addressLine4           = Option(cursor.getString("bus_address_4")).orNull,
-                  addressLine5           = Option(cursor.getString("bus_address_5")).orNull,
-                  postCode               = Option(cursor.getString("bus_postcode")).orNull,
-                  tradeClass             = Option(cursor.getString("trade_class")).getOrElse(""),
-                  dateOfRegistration     = Option(cursor.getTimestamp("date_of_reg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
-                  dateOfDeregistration   = Option(cursor.getTimestamp("date_of_dereg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
-                  missingTraderIndicator = Option(cursor.getString("missing_trader_ind")).orNull,
-                  singleMarketIndicator  = cursor.getInt("ph_sem_trader_ind")
-                )
-              )
-            }
-          }
-        }
-
-      }
-
-    }
-  }
+class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(implicit ec: ExecutionContext) extends Logging {
 
   def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse] = {
     logger.info(s"Calling stored procedure getLatestApplications for VRN: ${request.applicantVatRegNumber}")
@@ -103,9 +57,9 @@ class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContex
               case Some(repId) => storedProcedure.setString("p_representative_id", repId)
               case None        => storedProcedure.setNull("p_representative_id", java.sql.Types.VARCHAR)
             }
-            storedProcedure.setObject("p_order_by", request.orderBy.orNull)
-            storedProcedure.setObject("p_sort_order", request.sortOrder.orNull)
-            storedProcedure.setObject("p_start_at", request.startAt.getOrElse(0))
+            storedProcedure.setInt("p_order_by", request.orderBy.getOrElse(0))
+            storedProcedure.setString("p_sort_order", request.sortOrder.orNull)
+            storedProcedure.setInt("p_start_at", request.startAt.getOrElse(0))
             storedProcedure.setInt("p_max_number", request.maxNumber)
 
             // Register output parameters

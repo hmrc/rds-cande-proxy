@@ -31,29 +31,11 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
     extends BackendController(cc)
     with Logging {
 
-  def retrieveTraderByVrn(): Action[AnyContent] =
-    authorise.async:
-      implicit request =>
-        val vrn = request.identifierValue
-        euVatService
-          .retrieveTraderByVrn(vrn)
-          .map {
-            case Some(trader) =>
-              logger.info(s"Trader found for VRN: $vrn")
-              Ok(Json.toJson(trader))
-            case None =>
-              logger.warn(s"No trader known facts found for VRN: $vrn")
-              NotFound(Json.obj("message" -> s"No trader found for VRN $vrn"))
-          }
-          .recover { case ex: Exception =>
-            logger.error("Error while retrieving traders known facts from oracle database", ex)
-            InternalServerError("Failed to retrieve traders known facts")
-          }
-
   def getLatestApplications: Action[AnyContent] =
     authorise.async { implicit request =>
-      request.body.asJson.flatMap(_.asOpt[LatestApplicationRequest]) match {
-        case Some(latestApplicationRequest) =>
+      request.body.asJson
+        .flatMap(_.asOpt[LatestApplicationRequest])
+        .map { latestApplicationRequest =>
           euVatService
             .getLatestApplications(latestApplicationRequest)
             .map { response =>
@@ -64,10 +46,11 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
               logger.error("Error while retrieving latest applications from oracle database", ex)
               InternalServerError("Failed to retrieve latest applications")
             }
-        case None =>
+        }
+        .getOrElse {
           logger.warn("Invalid request body for getLatestApplications")
           Future.successful(BadRequest("Invalid request body"))
-      }
+        }
     }
 
 }
