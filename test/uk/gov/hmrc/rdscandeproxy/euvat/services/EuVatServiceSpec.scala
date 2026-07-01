@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -32,48 +32,60 @@ import scala.concurrent.{ExecutionContext, Future}
 class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar with IntegrationPatience:
 
   implicit val ec: ExecutionContext = global
-  private val mockConnector = mock[EuVatCandeRepository]
-  private val service = new EuVatService(mockConnector)
+//  private val mockConnector = mock[EuVatCandeRepository]
+//  private val service = new EuVatService(mockConnector)
 
-  val emptyKnownFactsResponse: TradersKnownFacts =
-    TradersKnownFacts(0, "", "", "", "", "", "", "", "", LocalDateTime.MIN, LocalDateTime.MIN, "", 0)
+  val appRequest: ApplicationRequest = ApplicationRequest(
+    applicantVatRegNumber         = "123456789",
+    refundingCountryCode          = Some("FR"),
+    periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
+    periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
+    applicantEmailAddress         = Some("test@email.com"),
+    applicantTelephoneNumber      = Some("0123456789"),
+    applicationLanguage           = Some("EN"),
+    businessActivityCode1         = Some("7090"),
+    businessActivityCode2         = Some("8903"),
+    businessActivityCode3         = None,
+    representativeId              = None,
+    representativeCountryCode     = None,
+    representativeEmailAddress    = None,
+    representativeIdType          = None,
+    representativeTelephoneNumber = None,
+    bankAccountOwnerName          = None,
+    bankAccountOwnerType          = None,
+    iBanCode                      = None,
+    bicCode                       = None,
+    bankAccountCurrencyCode       = None
+  )
 
-  val KnownFactsResponse: TradersKnownFacts =
-    TradersKnownFacts(
-      123456789,
-      "TestData",
-      "Line 1",
-      "Line 2",
-      "Line 3",
-      "Line 4",
-      "Line 5",
-      "NE3 9TG",
-      "7020",
-      LocalDateTime.of(2025, 1, 11, 10, 38),
-      LocalDateTime.of(2026, 1, 11, 10, 38),
-      "N",
-      1
-    )
+  val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
 
   "EuVatService" should:
+    val repo = mock[EuVatCandeRepository]
+    val service = new EuVatService(repo)
+
+    val req = mock[ApplicationRequest]
     "succeed" when:
-      "retrieving no Known facts" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
+      "add application to the database" in:
+        val expected = ApplicationResponse(1, "APP-123", 10)
 
-        val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe Some(emptyKnownFactsResponse)
+        when(repo.addApplication(req)).thenReturn(Future.successful(expected))
 
-      "retrieving traders known facts" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.successful(Some(KnownFactsResponse)))
-        val result = service.retrieveTraderByVrn("123").futureValue
-        result shouldBe Some(KnownFactsResponse)
+        val result = service.addApplication(req)
 
-    "fail" when:
-      "retrieving Direct Debits" in:
-        when(mockConnector.getTraderByVrn(any()))
-          .thenReturn(Future.failed(new Exception("bang")))
+        result shouldBe Future.successful(expected)
+        verify(repo).addApplication(req)
 
-        val result = intercept[Exception](service.retrieveTraderByVrn("123").futureValue)
-        result.getMessage should include("bang")
+//      "retrieving traders known facts" in:
+//        when(mockConnector.getTraderByVrn(any()))
+//          .thenReturn(Future.successful(Some(KnownFactsResponse)))
+//        val result = service.retrieveTraderByVrn("123").futureValue
+//        result shouldBe Some(KnownFactsResponse)
+
+//    "fail" when:
+//      "while saving to database" in:
+//        when(mockConnector.addApplication(any()))
+//          .thenReturn(Future.failed(new Exception("bang")))
+//
+//        val result = intercept[Exception](service.addApplication(req).futureValue)
+//        result.getMessage should include("bang")

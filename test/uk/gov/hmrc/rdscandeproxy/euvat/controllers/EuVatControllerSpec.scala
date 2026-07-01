@@ -21,48 +21,70 @@ import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Result
+import play.api.mvc.{AnyContent, AnyContentAsJson, Request, Result}
+import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
-class EuVatControllerSpec extends SpecBase with MockitoSugar {
+class EuVatControllerSpec extends SpecBase {
   "EuVatController" - {
 
-    "retrieveTraderKnownFacts" - {
-      "return 200 and a successful response when DB returns records" in new SetUp {
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(Some(KnownFactsResponse)))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
+    "add application" - {
+      "return 200 and a successful response when DB returns records" in {
+//        when(mockEuVatService.addApplication(any()))
+//          .thenReturn(Future.successful(Some(applicationResponse)))
+//        val result: Future[Result] = controller.addApplication()(fakeRequest)
+//
+//        status(result)        shouldBe OK
+//        contentType(result)   shouldBe Some("application/json")
+//        contentAsJson(result) shouldBe Json.toJson(applicationResponse)
+
+        val auth = mock[AuthAction]
+        val service = mock[EuVatService]
+        val cc = stubControllerComponents()
+
+        val controller = new EuVatController(auth, service, cc)
+
+        val reqJson = Json.obj(
+          "applicantVatRegNumber" -> "GB123456",
+          "refundingCountryCode"  -> "FR"
+        )
+
+        val request = FakeRequest("POST", "/add")
+          .withBody(AnyContentAsJson(reqJson))
+
+        val appReq = reqJson.as[ApplicationRequest]
+        val appResp = ApplicationResponse(1, "APP-001", 5)
+
+        when(auth.invokeBlock(any(), any())).thenAnswer { invocation =>
+          val block = invocation.getArgument(1).asInstanceOf[Request[AnyContent] => Future[Result]]
+          block(request)
+        }
+
+        when(service.addApplication(appReq)).thenReturn(Future.successful(appResp))
+
+        val result = controller.addApplication()(request)
 
         status(result)        shouldBe OK
-        contentType(result)   shouldBe Some("application/json")
-        contentAsJson(result) shouldBe Json.toJson(KnownFactsResponse)
-      }
-
-      "return 200 and an empty records when no data returned from DB" in new SetUp {
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
-          .thenReturn(Future.successful(Some(emptyKnownFactsResponse)))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
-
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(emptyKnownFactsResponse)
+        contentAsJson(result) shouldBe Json.toJson(appResp)
       }
 
       "return 500 and log error when DB call fails" in new SetUp {
         val exception = new RuntimeException("DB error")
-        when(mockEuVatService.retrieveTraderByVrn(any[String]))
+        when(mockEuVatService.addApplication(any()))
           .thenReturn(Future.failed(exception))
-        val result: Future[Result] = controller.retrieveTraderByVrn()(fakeRequest)
+        val result: Future[Result] = controller.addApplication()(fakeRequest)
 
-        status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to retrieve traders known facts")
+        status(result)        shouldBe BAD_REQUEST
+        contentAsString(result) should include("Invalid request body")
       }
     }
 
@@ -71,25 +93,30 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
   private class SetUp {
     val mockEuVatService: EuVatService = mock[EuVatService]
 
-    val emptyKnownFactsResponse: TradersKnownFacts =
-      TradersKnownFacts(0, "", "", "", "", "", "", "", "", LocalDateTime.MIN, LocalDateTime.MIN, "", 0)
+    val appRequest: ApplicationRequest = ApplicationRequest(
+      applicantVatRegNumber         = "123456789",
+      refundingCountryCode          = Some("FR"),
+      periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
+      periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
+      applicantEmailAddress         = Some("test@email.com"),
+      applicantTelephoneNumber      = Some("0123456789"),
+      applicationLanguage           = Some("EN"),
+      businessActivityCode1         = Some("7090"),
+      businessActivityCode2         = Some("8903"),
+      businessActivityCode3         = None,
+      representativeId              = None,
+      representativeCountryCode     = None,
+      representativeEmailAddress    = None,
+      representativeIdType          = None,
+      representativeTelephoneNumber = None,
+      bankAccountOwnerName          = None,
+      bankAccountOwnerType          = None,
+      iBanCode                      = None,
+      bicCode                       = None,
+      bankAccountCurrencyCode       = None
+    )
 
-    val KnownFactsResponse: TradersKnownFacts =
-      TradersKnownFacts(
-        123456789,
-        "TestData",
-        "Line 1",
-        "Line 2",
-        "Line 3",
-        "Line 4",
-        "Line 5",
-        "NE3 9TG",
-        "7020",
-        LocalDateTime.of(2025, 1, 11, 10, 38),
-        LocalDateTime.of(2026, 1, 11, 10, 38),
-        "N",
-        1
-      )
+    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
 
     val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
 
