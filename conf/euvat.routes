@@ -1,3 +1,3 @@
 # microservice specific routes
 
-GET     /traders/create-application     uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication()
+GET     /create-application     uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication()
