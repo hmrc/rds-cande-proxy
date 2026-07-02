@@ -22,6 +22,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 
@@ -49,48 +50,46 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     }
 
     // When prepareCall is invoked on the connection, return the mocked callable statement
-    when(mockConnection.prepareCall(any[String])).thenReturn(mockCallableStatement)
-
-    // Mock output parameters
-    when(mockCallableStatement.getInt("p_application_id")).thenReturn(123)
-    when(mockCallableStatement.getString("p_application_number")).thenReturn("APP-001")
-    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(5)
+    when(mockConnection.prepareCall(any())).thenReturn(mockCallableStatement)
 
     // Initialize the repository with the mocked db connection
     repository = new EuVatCandeRepository(db)
   }
 
-  val appRequest: ApplicationRequest = ApplicationRequest(
-    applicantVatRegNumber         = "123456789",
-    refundingCountryCode          = Some("FR"),
-    periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
-    periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
-    applicantEmailAddress         = Some("test@email.com"),
-    applicantTelephoneNumber      = Some("0123456789"),
-    applicationLanguage           = Some("EN"),
-    businessActivityCode1         = Some("7090"),
-    businessActivityCode2         = Some("8903"),
-    businessActivityCode3         = None,
-    representativeId              = None,
-    representativeCountryCode     = None,
-    representativeEmailAddress    = None,
-    representativeIdType          = None,
-    representativeTelephoneNumber = None,
-    bankAccountOwnerName          = None,
-    bankAccountOwnerType          = None,
-    iBanCode                      = None,
-    bicCode                       = None,
-    bankAccountCurrencyCode       = None
-  )
-
-  val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
-
   "addApplication" should "return saved application response" in {
-    // Act
-    val result = repository.addApplication(appRequest)
+    val appRequest: ApplicationRequest = ApplicationRequest(
+      applicantVatRegNumber         = "123456789",
+      refundingCountryCode          = Some("FR"),
+      periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
+      periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
+      applicantEmailAddress         = Some("test@email.com"),
+      applicantTelephoneNumber      = Some("0123456789"),
+      applicationLanguage           = Some("EN"),
+      businessActivityCode1         = Some("7090"),
+      businessActivityCode2         = Some("8903"),
+      businessActivityCode3         = None,
+      representativeId              = None,
+      representativeCountryCode     = None,
+      representativeEmailAddress    = None,
+      representativeIdType          = None,
+      representativeTelephoneNumber = None,
+      bankAccountOwnerName          = None,
+      bankAccountOwnerType          = None,
+      iBanCode                      = None,
+      bicCode                       = None,
+      bankAccountCurrencyCode       = None
+    )
 
-    // Assert
-    result shouldBe Some(applicationResponse)
+    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB123456", 1)
+
+    // Mock output parameters
+    when(mockCallableStatement.getInt("p_application_id")).thenReturn(1)
+    when(mockCallableStatement.getString("p_application_number")).thenReturn("GB123456")
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+
+    val result = await(repository.addApplication(appRequest))
+
+    result shouldBe applicationResponse
   }
 
 }

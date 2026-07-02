@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
-import org.mockito.Mockito.{verify, when}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -32,8 +33,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar with IntegrationPatience:
 
   implicit val ec: ExecutionContext = global
-//  private val mockConnector = mock[EuVatCandeRepository]
-//  private val service = new EuVatService(mockConnector)
+  private val mockConnector = mock[EuVatCandeRepository]
+  private val service = new EuVatService(mockConnector)
 
   val appRequest: ApplicationRequest = ApplicationRequest(
     applicantVatRegNumber         = "123456789",
@@ -61,31 +62,17 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
 
   "EuVatService" should:
-    val repo = mock[EuVatCandeRepository]
-    val service = new EuVatService(repo)
-
-    val req = mock[ApplicationRequest]
     "succeed" when:
       "add application to the database" in:
-        val expected = ApplicationResponse(1, "APP-123", 10)
+        when(mockConnector.addApplication(any()))
+          .thenReturn(Future.successful(applicationResponse))
+        val result = service.addApplication(appRequest).futureValue
+        result shouldBe applicationResponse
 
-        when(repo.addApplication(req)).thenReturn(Future.successful(expected))
+    "fail" when:
+      "while saving to database" in:
+        when(mockConnector.addApplication(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
 
-        val result = service.addApplication(req)
-
-        result shouldBe Future.successful(expected)
-        verify(repo).addApplication(req)
-
-//      "retrieving traders known facts" in:
-//        when(mockConnector.getTraderByVrn(any()))
-//          .thenReturn(Future.successful(Some(KnownFactsResponse)))
-//        val result = service.retrieveTraderByVrn("123").futureValue
-//        result shouldBe Some(KnownFactsResponse)
-
-//    "fail" when:
-//      "while saving to database" in:
-//        when(mockConnector.addApplication(any()))
-//          .thenReturn(Future.failed(new Exception("bang")))
-//
-//        val result = intercept[Exception](service.addApplication(req).futureValue)
-//        result.getMessage should include("bang")
+        val result = intercept[Exception](service.addApplication(appRequest).futureValue)
+        result.getMessage should include("bang")

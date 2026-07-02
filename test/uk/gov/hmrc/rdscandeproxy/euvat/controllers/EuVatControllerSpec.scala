@@ -21,11 +21,9 @@ import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
-import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{AnyContent, AnyContentAsJson, Request, Result}
-import play.api.test.FakeRequest
+import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.Helpers.*
-import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
@@ -38,53 +36,38 @@ class EuVatControllerSpec extends SpecBase {
   "EuVatController" - {
 
     "add application" - {
-      "return 200 and a successful response when DB returns records" in {
-//        when(mockEuVatService.addApplication(any()))
-//          .thenReturn(Future.successful(Some(applicationResponse)))
-//        val result: Future[Result] = controller.addApplication()(fakeRequest)
-//
-//        status(result)        shouldBe OK
-//        contentType(result)   shouldBe Some("application/json")
-//        contentAsJson(result) shouldBe Json.toJson(applicationResponse)
+      "return 200 and a successful response when DB returns records" in new SetUp {
+        when(mockEuVatService.addApplication(any()))
+          .thenReturn(Future.successful(applicationResponse))
 
-        val auth = mock[AuthAction]
-        val service = mock[EuVatService]
-        val cc = stubControllerComponents()
-
-        val controller = new EuVatController(auth, service, cc)
-
-        val reqJson = Json.obj(
-          "applicantVatRegNumber" -> "GB123456",
-          "refundingCountryCode"  -> "FR"
+        val result: Future[Result] = controller.addApplication()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(appRequest))
         )
 
-        val request = FakeRequest("POST", "/add")
-          .withBody(AnyContentAsJson(reqJson))
-
-        val appReq = reqJson.as[ApplicationRequest]
-        val appResp = ApplicationResponse(1, "APP-001", 5)
-
-        when(auth.invokeBlock(any(), any())).thenAnswer { invocation =>
-          val block = invocation.getArgument(1).asInstanceOf[Request[AnyContent] => Future[Result]]
-          block(request)
-        }
-
-        when(service.addApplication(appReq)).thenReturn(Future.successful(appResp))
-
-        val result = controller.addApplication()(request)
-
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(appResp)
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(applicationResponse)
+
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.addApplication()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
       }
 
       "return 500 and log error when DB call fails" in new SetUp {
         val exception = new RuntimeException("DB error")
         when(mockEuVatService.addApplication(any()))
           .thenReturn(Future.failed(exception))
-        val result: Future[Result] = controller.addApplication()(fakeRequest)
+        val result: Future[Result] = controller.addApplication()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(appRequest))
+        )
 
-        status(result)        shouldBe BAD_REQUEST
-        contentAsString(result) should include("Invalid request body")
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to save request in database")
       }
     }
 
