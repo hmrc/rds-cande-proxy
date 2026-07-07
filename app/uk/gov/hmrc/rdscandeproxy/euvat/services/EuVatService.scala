@@ -25,7 +25,7 @@ import scala.concurrent.Future
 
 class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
 
-  def addApplication(applicationRequest: ApplicationRequest): Future[ApplicationResponse] =
-    euvatCandeRepository.addApplication(applicationRequest)
+  def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] =
+    euvatCandeRepository.addApplication(applicationRequest, vrn)
 
 }

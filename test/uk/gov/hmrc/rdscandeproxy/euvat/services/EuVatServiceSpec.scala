@@ -37,7 +37,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   private val service = new EuVatService(mockConnector)
 
   val appRequest: ApplicationRequest = ApplicationRequest(
-    applicantVatRegNumber         = "123456789",
+//    applicantVatRegNumber         = "123456789",
     refundingCountryCode          = Some("FR"),
     periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
     periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
@@ -64,15 +64,15 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   "EuVatService" should:
     "succeed" when:
       "add application to the database" in:
-        when(mockConnector.addApplication(any()))
+        when(mockConnector.addApplication(any(), any()))
           .thenReturn(Future.successful(applicationResponse))
-        val result = service.addApplication(appRequest).futureValue
+        val result = service.addApplication(appRequest, "123456789").futureValue
         result shouldBe applicationResponse
 
     "fail" when:
       "while saving to database" in:
-        when(mockConnector.addApplication(any()))
+        when(mockConnector.addApplication(any(), any()))
           .thenReturn(Future.failed(new Exception("bang")))
 
-        val result = intercept[Exception](service.addApplication(appRequest).futureValue)
+        val result = intercept[Exception](service.addApplication(appRequest, "123456789").futureValue)
         result.getMessage should include("bang")

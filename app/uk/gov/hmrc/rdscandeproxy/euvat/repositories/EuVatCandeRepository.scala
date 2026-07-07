@@ -29,14 +29,14 @@ import scala.util.Using
 
 class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(using ec: ExecutionContext) extends Logging {
 
-  def addApplication(applicationRequest: ApplicationRequest): Future[ApplicationResponse] = {
-    logger.info(s"************* calling stored procedure addApplication for VRN: ${applicationRequest.applicantVatRegNumber}")
+  def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] = {
+    logger.info(s"************* calling stored procedure to create application for VRN: $vrn")
     Future {
       db.withConnection { connection =>
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addApplication(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
           stmt =>
             // Set input parameters
-            stmt.setString("p_applicant_vat_reg_number", applicationRequest.applicantVatRegNumber)
+            stmt.setString("p_applicant_vat_reg_number", vrn)
             stmt.setString("p_refunding_country_code", applicationRequest.refundingCountryCode.orNull)
             stmt.setTimestamp("p_period_start_date", applicationRequest.periodStartDate.map(java.sql.Timestamp.valueOf).orNull)
             stmt.setTimestamp("p_period_end_date", applicationRequest.periodEndDate.map(java.sql.Timestamp.valueOf).orNull)

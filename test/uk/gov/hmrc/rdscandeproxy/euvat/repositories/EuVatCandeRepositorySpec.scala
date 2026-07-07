@@ -58,7 +58,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
 
   "addApplication" should "return saved application response" in {
     val appRequest: ApplicationRequest = ApplicationRequest(
-      applicantVatRegNumber         = "123456789",
+//      applicantVatRegNumber         = "123456789",
       refundingCountryCode          = Some("FR"),
       periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
       periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
@@ -87,7 +87,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     when(mockCallableStatement.getString("p_application_number")).thenReturn("GB123456")
     when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
 
-    val result = await(repository.addApplication(appRequest))
+    val result = await(repository.addApplication(appRequest, "123456789"))
 
     result shouldBe applicationResponse
   }

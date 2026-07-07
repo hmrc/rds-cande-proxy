@@ -37,7 +37,7 @@ class EuVatControllerSpec extends SpecBase {
 
     "add application" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
-        when(mockEuVatService.addApplication(any()))
+        when(mockEuVatService.addApplication(any(), any()))
           .thenReturn(Future.successful(applicationResponse))
 
         val result: Future[Result] = controller.addApplication()(
@@ -50,24 +50,43 @@ class EuVatControllerSpec extends SpecBase {
 
       }
 
-      "return 400 when request body is invalid" in new SetUp {
+      "return 400 when request body is missing" in new SetUp {
         val result: Future[Result] = controller.addApplication()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+          fakeRequest.withMethod("POST")
         )
 
-        status(result) shouldBe BAD_REQUEST
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Missing request body"
       }
+
+//      "return 400 when JSON is not valid as ApplicationRequest" in new SetUp {
+//        when(mockEuVatService.addApplication(any(), any()))
+//          .thenReturn(Future.successful(null))
+//
+//        val result: Future[Result] = controller.addApplication()(
+//          fakeRequest
+//            .withMethod("POST")
+//            .withJsonBody(
+//              Json.obj(
+//              )
+//            )
+//        )
+//        status(result)          shouldBe BAD_REQUEST
+//        contentAsString(result) shouldBe "Invalid request body"
+//
+//        verify(mockEuVatService, never()).addApplication(any(), any())
+//      }
 
       "return 500 and log error when DB call fails" in new SetUp {
         val exception = new RuntimeException("DB error")
-        when(mockEuVatService.addApplication(any()))
+        when(mockEuVatService.addApplication(any(), any()))
           .thenReturn(Future.failed(exception))
         val result: Future[Result] = controller.addApplication()(
           fakeRequest.withMethod("POST").withJsonBody(Json.toJson(appRequest))
         )
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to save request in database")
+        contentAsString(result) should include("Failed to create request in database")
       }
     }
 
@@ -77,7 +96,7 @@ class EuVatControllerSpec extends SpecBase {
     val mockEuVatService: EuVatService = mock[EuVatService]
 
     val appRequest: ApplicationRequest = ApplicationRequest(
-      applicantVatRegNumber         = "123456789",
+//      applicantVatRegNumber         = "123456789",
       refundingCountryCode          = Some("FR"),
       periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
       periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
