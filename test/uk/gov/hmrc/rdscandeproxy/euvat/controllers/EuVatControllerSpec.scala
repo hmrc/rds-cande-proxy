@@ -96,7 +96,6 @@ class EuVatControllerSpec extends SpecBase {
     val mockEuVatService: EuVatService = mock[EuVatService]
 
     val appRequest: ApplicationRequest = ApplicationRequest(
-//      applicantVatRegNumber         = "123456789",
       refundingCountryCode          = Some("FR"),
       periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
       periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
