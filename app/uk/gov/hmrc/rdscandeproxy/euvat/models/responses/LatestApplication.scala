@@ -27,8 +27,8 @@ case class LatestApplication(
   periodStartDate: LocalDateTime,
   periodEndDate: LocalDateTime,
   applicationNumber: String,
-  applicationStatus: String,
-  submissionStatus: String,
+  applicationStatus: Option[String],
+  submissionStatus: Option[String],
   applicationVersion: LocalDateTime
 )
 
@@ -40,7 +40,7 @@ object LatestApplication:
         (__ \ "periodStartDate").format[LocalDateTime] and
         (__ \ "periodEndDate").format[LocalDateTime] and
         (__ \ "applicationNumber").format[String] and
-        (__ \ "applicationStatus").format[String] and
-        (__ \ "submissionStatus").format[String] and
+        (__ \ "applicationStatus").formatNullable[String] and
+        (__ \ "submissionStatus").formatNullable[String] and
         (__ \ "applicationVersion").format[LocalDateTime]
     )(LatestApplication.apply, o => Tuple.fromProductTyped(o))

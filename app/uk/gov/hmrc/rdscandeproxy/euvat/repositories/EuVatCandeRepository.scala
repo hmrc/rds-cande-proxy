@@ -85,8 +85,8 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                       periodStartDate      = cursor.getTimestamp("period_start_date").toLocalDateTime,
                       periodEndDate        = cursor.getTimestamp("period_end_date").toLocalDateTime,
                       applicationNumber    = cursor.getString("application_number"),
-                      applicationStatus    = cursor.getString("application_status"),
-                      submissionStatus     = cursor.getString("submission_status"),
+                      applicationStatus    = Option(cursor.getString("application_status")),
+                      submissionStatus     = Option(cursor.getString("submission_status")),
                       applicationVersion   = cursor.getTimestamp("application_version").toLocalDateTime
                     )
                   )
