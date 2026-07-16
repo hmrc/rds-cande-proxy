@@ -56,26 +56,8 @@ class EuVatControllerSpec extends SpecBase {
         )
 
         status(result)          shouldBe BAD_REQUEST
-        contentAsString(result) shouldBe "Missing request body"
+        contentAsString(result) shouldBe "Invalid request body"
       }
-
-//      "return 400 when JSON is not valid as ApplicationRequest" in new SetUp {
-//        when(mockEuVatService.addApplication(any(), any()))
-//          .thenReturn(Future.successful(null))
-//
-//        val result: Future[Result] = controller.addApplication()(
-//          fakeRequest
-//            .withMethod("POST")
-//            .withJsonBody(
-//              Json.obj(
-//              )
-//            )
-//        )
-//        status(result)          shouldBe BAD_REQUEST
-//        contentAsString(result) shouldBe "Invalid request body"
-//
-//        verify(mockEuVatService, never()).addApplication(any(), any())
-//      }
 
       "return 500 and log error when DB call fails" in new SetUp {
         val exception = new RuntimeException("DB error")
@@ -86,7 +68,7 @@ class EuVatControllerSpec extends SpecBase {
         )
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to create request in database")
+        contentAsString(result) should include("Failed to create refund application")
       }
     }
 
@@ -117,7 +99,7 @@ class EuVatControllerSpec extends SpecBase {
       bankAccountCurrencyCode       = None
     )
 
-    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
+    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB9999991", 1)
 
     val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
 

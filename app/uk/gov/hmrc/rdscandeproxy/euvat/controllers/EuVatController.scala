@@ -34,27 +34,20 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
 
   def addApplication(): Action[AnyContent] =
     authorise.async { implicit request =>
-      request.body.asJson match {
+      request.body.asJson.flatMap(_.asOpt[ApplicationRequest]) match {
         case None =>
-          logger.warn("Missing JSON body for addApplication")
-          Future.successful(BadRequest("Missing request body"))
-        case Some(json) =>
-          json.validate[ApplicationRequest].asOpt match
-            case None =>
-              logger.warn("Invalid JSON structure for ApplicationRequest")
-              Future.successful(BadRequest("Invalid request body"))
-            case Some(applicationRequest) =>
-              val vrn = request.identifierValue
-              euVatService
-                .addApplication(applicationRequest, vrn)
-                .map { response =>
-                  logger.info(s"Application successfully created for applicationId: ${response.applicationId}")
-                  Ok(Json.toJson(response))
-                }
-                .recover { case ex: Exception =>
-                  logger.error("Error while creating the application in database", ex)
-                  InternalServerError("Failed to create request in database")
-                }
+          logger.warn("Invalid JSON for ApplicationRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(appRequest) =>
+          euVatService
+            .addApplication(appRequest, request.identifierValue)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while creating the refund application", ex)
+              InternalServerError("Failed to create refund application")
+            }
       }
     }
 
