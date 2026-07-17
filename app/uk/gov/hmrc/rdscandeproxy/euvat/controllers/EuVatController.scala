@@ -21,6 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
@@ -32,7 +33,29 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
     extends BackendController(cc)
     with Logging {
 
-  def addApplication(): Action[AnyContent] =
+  def getLatestApplications: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson
+        .flatMap(_.asOpt[LatestApplicationRequest])
+        .map { latestApplicationRequest =>
+          euVatService
+            .getLatestApplications(latestApplicationRequest)
+            .map { response =>
+              logger.info(s"Latest applications retrieved for VRN: ${latestApplicationRequest.applicantVatRegNumber}")
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving latest applications from oracle database", ex)
+              InternalServerError("Failed to retrieve latest applications")
+            }
+        }
+        .getOrElse {
+          logger.warn("Invalid request body for getLatestApplications")
+          Future.successful(BadRequest("Invalid request body"))
+        }
+    }
+
+  def addApplication: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[ApplicationRequest]) match {
         case None =>

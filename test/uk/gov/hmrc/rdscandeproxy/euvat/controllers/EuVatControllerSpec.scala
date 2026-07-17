@@ -21,10 +21,13 @@ import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
@@ -32,8 +35,42 @@ import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
-class EuVatControllerSpec extends SpecBase {
+class EuVatControllerSpec extends SpecBase with MockitoSugar {
+
   "EuVatController" - {
+
+    "getLatestApplications" - {
+      "return 200 with JSON when service returns latest applications" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any()))
+          .thenReturn(Future.successful(sampleResponse))
+
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(sampleResponse)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+        )
+
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+      }
+    }
 
     "add application" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
@@ -103,5 +140,23 @@ class EuVatControllerSpec extends SpecBase {
 
     val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
 
+    val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = Some("LV"),
+      startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
+      endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
+      representativeId      = Some("rep123"),
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
+
+    val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
+      applications     = List.empty,
+      totalApplication = 0
+    )
+
   }
+
 }

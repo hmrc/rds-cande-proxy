@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
@@ -24,6 +26,10 @@ import javax.inject.Inject
 import scala.concurrent.Future
 
 class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
+
+  def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse] = {
+    euvatCandeRepository.getLatestApplications(request)
+  }
 
   def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] =
     euvatCandeRepository.addApplication(applicationRequest, vrn)
