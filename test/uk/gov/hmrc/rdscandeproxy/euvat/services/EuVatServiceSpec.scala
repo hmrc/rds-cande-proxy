@@ -24,6 +24,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -36,24 +38,24 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   private val mockConnector = mock[EuVatCandeRepository]
   private val service = new EuVatService(mockConnector)
 
-  val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
-    applicantVatRegNumber = "123456789",
-    refundingCountry      = Some("LV"),
-    startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
-    endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
-    representativeId      = Some("rep123"),
-    maxNumber             = 10,
-    orderBy               = None,
-    sortOrder             = None,
-    startAt               = None
-  )
+  "EuVatService.getLatestApplications" should {
+    val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = Some("LV"),
+      startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
+      endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
+      representativeId      = Some("rep123"),
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
 
-  val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
-    applications     = List.empty,
-    totalApplication = 0
-  )
+    val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
+      applications     = List.empty,
+      totalApplication = 0
+    )
 
-  "EuVatService" should:
     "succeed" when:
       "retrieving latest applications" in:
         when(mockConnector.getLatestApplications(any()))
@@ -67,3 +69,45 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
           .thenReturn(Future.failed(new Exception("bang")))
         val result = intercept[Exception](service.getLatestApplications(sampleRequest).futureValue)
         result.getMessage should include("bang")
+  }
+
+  "EuVatService.addApplication" should {
+    val appRequest: ApplicationRequest = ApplicationRequest(
+      refundingCountryCode          = Some("FR"),
+      periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
+      periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
+      applicantEmailAddress         = Some("test@email.com"),
+      applicantTelephoneNumber      = Some("0123456789"),
+      applicationLanguage           = Some("EN"),
+      businessActivityCode1         = Some("7090"),
+      businessActivityCode2         = Some("8903"),
+      businessActivityCode3         = None,
+      representativeId              = None,
+      representativeCountryCode     = None,
+      representativeEmailAddress    = None,
+      representativeIdType          = None,
+      representativeTelephoneNumber = None,
+      bankAccountOwnerName          = None,
+      bankAccountOwnerType          = None,
+      iBanCode                      = None,
+      bicCode                       = None,
+      bankAccountCurrencyCode       = None
+    )
+
+    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB", 1)
+
+    "succeed" when:
+      "add application to the database" in:
+        when(mockConnector.addApplication(any(), any()))
+          .thenReturn(Future.successful(applicationResponse))
+        val result = service.addApplication(appRequest, "123456789").futureValue
+        result shouldBe applicationResponse
+
+    "fail" when:
+      "while saving to database" in:
+        when(mockConnector.addApplication(any(), any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+
+        val result = intercept[Exception](service.addApplication(appRequest, "123456789").futureValue)
+        result.getMessage should include("bang")
+  }

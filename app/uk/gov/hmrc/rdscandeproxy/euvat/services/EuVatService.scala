@@ -16,20 +16,22 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
-import play.api.Logging
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
 import scala.concurrent.Future
 
-class EuVatService @Inject() (euVatCandeSource: EuVatCandeRepository) extends Logging {
+class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
 
   def getLatestApplications(request: LatestApplicationRequest): Future[LatestApplicationResponse] = {
-    logger.info(s"Calling repository for latest applications for VRN: ${request.applicantVatRegNumber}")
-
-    euVatCandeSource.getLatestApplications(request)
+    euvatCandeRepository.getLatestApplications(request)
   }
+
+  def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] =
+    euvatCandeRepository.addApplication(applicationRequest, vrn)
 
 }

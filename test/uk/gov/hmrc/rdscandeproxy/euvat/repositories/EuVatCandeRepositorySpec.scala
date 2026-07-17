@@ -23,8 +23,9 @@ import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
-import uk.gov.hmrc.rdscandeproxy.euvat.config.AppConfig
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{ApplicationRequest, LatestApplicationRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.time.LocalDateTime
@@ -37,7 +38,6 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
   var mockConnection: Connection = _
   var mockCallableStatement: CallableStatement = _
   var mockResultSet: ResultSet = _
-  var mockConfig: AppConfig = _
 
   before {
     // Mocking the database connection and callable statement
@@ -45,7 +45,6 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     mockConnection        = mock(classOf[Connection])
     mockCallableStatement = mock(classOf[CallableStatement])
     mockResultSet         = mock(classOf[ResultSet])
-    mockConfig            = mock(classOf[AppConfig])
 
     // When db.withConnection is called, it should invoke the passed-in function and return the result
     when(db.withConnection(any())).thenAnswer { invocation =>
@@ -54,7 +53,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     }
 
     // When prepareCall is invoked on the connection, return the mocked callable statement
-    when(mockConnection.prepareCall(any[String])).thenReturn(mockCallableStatement)
+    when(mockConnection.prepareCall(any())).thenReturn(mockCallableStatement)
 
     // Initialize the repository with the mocked db connection
     repository = new EuVatCandeRepository(db)
@@ -114,6 +113,41 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
 
     result.totalApplication shouldBe 0
     result.applications     shouldBe List.empty
+  }
+
+  "addApplication" should "return saved application response" in {
+    val appRequest: ApplicationRequest = ApplicationRequest(
+      refundingCountryCode          = Some("FR"),
+      periodStartDate               = Some(LocalDateTime.of(2025, 1, 1, 0, 0, 0)),
+      periodEndDate                 = Some(LocalDateTime.of(2025, 3, 31, 23, 59, 59)),
+      applicantEmailAddress         = Some("test@email.com"),
+      applicantTelephoneNumber      = Some("0123456789"),
+      applicationLanguage           = Some("EN"),
+      businessActivityCode1         = Some("7090"),
+      businessActivityCode2         = Some("8903"),
+      businessActivityCode3         = None,
+      representativeId              = None,
+      representativeCountryCode     = None,
+      representativeEmailAddress    = None,
+      representativeIdType          = None,
+      representativeTelephoneNumber = None,
+      bankAccountOwnerName          = None,
+      bankAccountOwnerType          = None,
+      iBanCode                      = None,
+      bicCode                       = None,
+      bankAccountCurrencyCode       = None
+    )
+
+    val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB123456", 1)
+
+    // Mock output parameters
+    when(mockCallableStatement.getInt("p_application_id")).thenReturn(1)
+    when(mockCallableStatement.getString("p_application_number")).thenReturn("GB123456")
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+
+    val result = await(repository.addApplication(appRequest, "123456789"))
+
+    result shouldBe applicationResponse
   }
 
 }
