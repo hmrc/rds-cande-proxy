@@ -18,59 +18,59 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 
 import oracle.jdbc.OracleTypes
 import play.api.Logging
-import play.api.db.Database
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.TradersKnownFacts
+import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 
-import java.sql.ResultSet
 import java.time.LocalDateTime
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
 
-trait EuVatCandeDataSource {
-  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]]
-}
-class EuVatCandeRepository @Inject() (db: Database)(implicit ec: ExecutionContext) extends EuVatCandeDataSource with Logging {
+class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(using ec: ExecutionContext) extends Logging {
 
-  def getTraderByVrn(vrn: String): Future[Option[TradersKnownFacts]] = {
-    logger.info(s"************* calling stored procedure getTraderByVrn for VRN: $vrn")
+  def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] = {
+    logger.info(s"************* calling stored procedure to create application for VRN: $vrn")
     Future {
       db.withConnection { connection =>
-        Using.resource(connection.prepareCall("{call EUVAT_FILING_DC_KF.getTraderByVRN(?, ?)}")) { stmt =>
-          stmt.setInt("p_vrn", vrn.toInt)
-          stmt.registerOutParameter("p_trader", OracleTypes.CURSOR)
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addApplication(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+          stmt =>
+            // Set input parameters
+            stmt.setString("p_applicant_vat_reg_number", vrn)
+            stmt.setString("p_refunding_country_code", applicationRequest.refundingCountryCode.orNull)
+            stmt.setTimestamp("p_period_start_date", applicationRequest.periodStartDate.map(java.sql.Timestamp.valueOf).orNull)
+            stmt.setTimestamp("p_period_end_date", applicationRequest.periodEndDate.map(java.sql.Timestamp.valueOf).orNull)
+            stmt.setString("p_applicant_email_address", applicationRequest.applicantEmailAddress.orNull)
+            stmt.setString("p_applicant_telephone_num", applicationRequest.applicantTelephoneNumber.orNull)
+            stmt.setString("p_application_language", applicationRequest.applicationLanguage.orNull)
+            stmt.setString("p_representative_id", applicationRequest.representativeId.orNull)
+            stmt.setString("p_representative_country", applicationRequest.representativeCountryCode.orNull)
+            stmt.setString("p_representative_email_address", applicationRequest.representativeEmailAddress.orNull)
+            stmt.setString("p_representative_id_type", applicationRequest.representativeIdType.orNull)
+            stmt.setString("p_representative_telephone_num", applicationRequest.representativeTelephoneNumber.orNull)
+            stmt.setString("p_bank_account_owner_name", applicationRequest.bankAccountOwnerName.orNull)
+            stmt.setString("p_bank_account_owner_type", applicationRequest.bankAccountOwnerType.orNull)
+            stmt.setString("p_iban_code", applicationRequest.iBanCode.orNull)
+            stmt.setString("p_bic_code", applicationRequest.bicCode.orNull)
+            stmt.setString("p_bank_account_currency_code", applicationRequest.bankAccountCurrencyCode.orNull)
+            stmt.setString("p_business_activity_code1", applicationRequest.businessActivityCode1.orNull)
+            stmt.setString("p_business_activity_code2", applicationRequest.businessActivityCode2.orNull)
+            stmt.setString("p_business_activity_code3", applicationRequest.businessActivityCode3.orNull)
+            stmt.registerOutParameter("p_application_id", OracleTypes.NUMBER)
+            stmt.registerOutParameter("p_application_number", OracleTypes.VARCHAR)
+            stmt.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
 
-          stmt.execute()
+            stmt.execute()
+            logger.info("Data successfully saved in database")
 
-          val rs = stmt.getObject("p_trader", classOf[ResultSet])
-          Using.resource(rs) { cursor =>
-            if (!cursor.next()) {
-              logger.warn(s"No trader known facts returned from stored procedure for vrn: $vrn")
-              None
-            } else {
-              Some(
-                TradersKnownFacts(
-                  vatRegNumber           = cursor.getInt("vat_reg_number"),
-                  traderName             = Option(cursor.getString("trader_name")).orNull,
-                  addressLine1           = Option(cursor.getString("bus_address_1")).orNull,
-                  addressLine2           = Option(cursor.getString("bus_address_2")).orNull,
-                  addressLine3           = Option(cursor.getString("bus_address_3")).orNull,
-                  addressLine4           = Option(cursor.getString("bus_address_4")).orNull,
-                  addressLine5           = Option(cursor.getString("bus_address_5")).orNull,
-                  postCode               = Option(cursor.getString("bus_postcode")).orNull,
-                  tradeClass             = Option(cursor.getString("trade_class")).getOrElse(""),
-                  dateOfRegistration     = Option(cursor.getTimestamp("date_of_reg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
-                  dateOfDeregistration   = Option(cursor.getTimestamp("date_of_dereg")).map(_.toLocalDateTime).getOrElse(LocalDateTime.MIN),
-                  missingTraderIndicator = Option(cursor.getString("missing_trader_ind")).orNull,
-                  singleMarketIndicator  = cursor.getInt("ph_sem_trader_ind")
-                )
-              )
-            }
-          }
+            ApplicationResponse(
+              stmt.getInt("p_application_id"),
+              stmt.getString("p_application_number"),
+              stmt.getInt("p_update_seq_number")
+            )
         }
-
       }
-
     }
   }
+
 }

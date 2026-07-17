@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy.euvat.services
+package uk.gov.hmrc.rdscandeproxy.euvat.models.responses
 
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
+import play.api.libs.json.{Json, OFormat}
 
-import javax.inject.Inject
-import scala.concurrent.Future
+case class ApplicationResponse(
+  applicationId: Int,
+  applicationNumber: String,
+  updateSeqNumber: Int
+)
 
-class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
-
-  def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] =
-    euvatCandeRepository.addApplication(applicationRequest, vrn)
-
+object ApplicationResponse {
+  implicit val format: OFormat[ApplicationResponse] = Json.format[ApplicationResponse]
 }

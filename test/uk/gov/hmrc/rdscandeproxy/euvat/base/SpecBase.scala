@@ -25,7 +25,7 @@ import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory}
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
-import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers}
+import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers, Results}
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.{DefaultAwaitTimeout, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -45,7 +45,8 @@ trait SpecBase
     with BeforeAndAfterEach
     with TestSuite
     with FakeApplicationFactory
-    with BaseOneAppPerSuite {
+    with BaseOneAppPerSuite
+    with Results {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
