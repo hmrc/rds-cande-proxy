@@ -26,8 +26,8 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
@@ -152,6 +152,40 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         contentAsString(result) should include("Failed to add purchase")
       }
     }
+    "getSupplierVrnCount" - {
+      "return 200 with JSON when service returns the count" in new SetUp {
+        when(mockEuVatService.getSupplierVrnCount(any()))
+          .thenReturn(Future.successful(vrnCountResponse))
+
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(vrnCountRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(vrnCountResponse)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getSupplierVrnCount(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(vrnCountRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve supplier VRN count")
+      }
+    }
+
   }
 
   private class SetUp {
@@ -232,6 +266,15 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     )
 
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    val vrnCountRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
   }
 

@@ -19,9 +19,8 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplication, LatestApplicationResponse}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -176,6 +175,26 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
             stmt.getInt("p_item_number"),
             stmt.getInt("p_update_seq_number")
           )
+        }
+      }
+    }
+  }
+
+  def getSupplierVrnCount(request: SupplierVrnCountRequest): Future[SupplierVrnCountResponse] = {
+    logger.info(s"Calling stored procedure getSupplierVRNCount for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getSupplierVRNCount(?, ?, ?, ?, ?)}")) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+          storedProcedure.setString("p_supplier_vat_reg_number", request.vatNumber)
+          storedProcedure.setString("p_invoice_number", request.invoiceNumber)
+
+          storedProcedure.registerOutParameter("p_count", OracleTypes.NUMBER)
+
+          storedProcedure.execute()
+
+          SupplierVrnCountResponse(storedProcedure.getInt("p_count"))
         }
       }
     }

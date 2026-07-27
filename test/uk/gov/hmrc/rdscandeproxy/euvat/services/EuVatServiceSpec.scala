@@ -22,9 +22,8 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -147,5 +146,30 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         when(mockConnector.addPurchase(any()))
           .thenReturn(Future.failed(new Exception("bang")))
         val result = intercept[Exception](service.addPurchase(purchaseRequest).futureValue)
+        result.getMessage should include("bang")
+  }
+
+  "EuVatService.getSupplierVrnCount" should {
+    val sampleRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    val sampleResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
+
+    "succeed" when:
+      "retrieving supplier VRN count" in:
+        when(mockConnector.getSupplierVrnCount(any()))
+          .thenReturn(Future.successful(sampleResponse))
+        val result = service.getSupplierVrnCount(sampleRequest).futureValue
+        result shouldBe sampleResponse
+
+    "fail" when:
+      "retrieving supplier VRN count" in:
+        when(mockConnector.getSupplierVrnCount(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.getSupplierVrnCount(sampleRequest).futureValue)
         result.getMessage should include("bang")
   }
