@@ -19,9 +19,8 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{LatestApplication, LatestApplicationResponse}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 
 import java.sql.ResultSet
@@ -139,6 +138,45 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
               stmt.getString("p_application_number"),
               stmt.getInt("p_update_seq_number")
             )
+        }
+      }
+    }
+  }
+
+  def addPurchase(request: AddPurchaseRequest): Future[AddPurchaseResponse] = {
+    logger.info(s"************* calling stored procedure to add purchase for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addPurchase(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) { stmt =>
+          // Set input parameters
+          stmt.setLong("p_application_id", request.applicationId)
+          stmt.setString("p_goods_description_category", request.goodsDescriptionCategory.orNull)
+          stmt.setString("p_goods_description_text", request.goodsDescriptionText.orNull)
+          stmt.setString("p_purchase_subcategory", request.purchaseSubcategory.orNull)
+          stmt.setString("p_simplified_invoice_indicator", request.simplifiedInvoiceIndicator.orNull)
+          stmt.setString("p_supplier_name", request.supplierName.orNull)
+          stmt.setString("p_supplier_address_1", request.supplierAddress1.orNull)
+          stmt.setString("p_supplier_address_2", request.supplierAddress2.orNull)
+          stmt.setString("p_supplier_address_3", request.supplierAddress3.orNull)
+          stmt.setString("p_supplier_vat_reg_number", request.supplierVatRegNumber.orNull)
+          stmt.setString("p_supplier_tax_identifier", request.supplierTaxIdentifier.orNull)
+          stmt.setTimestamp("p_invoice_date", request.invoiceDate.map(java.sql.Timestamp.valueOf).orNull)
+          stmt.setString("p_invoice_number", request.invoiceNumber.orNull)
+          stmt.setString("p_currency_code", request.currencyCode.orNull)
+          stmt.setBigDecimal("p_taxable_amount", request.taxableAmount.map(_.bigDecimal).orNull)
+          stmt.setBigDecimal("p_vat_amount", request.vatAmount.map(_.bigDecimal).orNull)
+          stmt.setBigDecimal("p_deductible_vat_amount", request.deductibleVatAmount.map(_.bigDecimal).orNull)
+          stmt.setObject("p_update_seq_number", request.updateSequenceNumber.map(Int.box).orNull)
+          stmt.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+          stmt.registerOutParameter("p_item_number", OracleTypes.NUMBER)
+
+          stmt.execute()
+          logger.info("Data successfully saved in database")
+
+          AddPurchaseResponse(
+            stmt.getInt("p_item_number"),
+            stmt.getInt("p_update_seq_number")
+          )
         }
       }
     }
