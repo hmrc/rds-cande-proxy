@@ -24,7 +24,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{ApplicationRequest, LatestApplicationRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 
 import java.sql.{CallableStatement, Connection, ResultSet}
@@ -148,6 +148,39 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = await(repository.addApplication(appRequest, "123456789"))
 
     result shouldBe applicationResponse
+  }
+
+  "addPurchase" should "return purchase response" in {
+    val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
+      applicationId              = 123456,
+      goodsDescriptionCategory   = Some("1234"),
+      goodsDescriptionText       = Some("Fuel"),
+      purchaseSubcategory        = None,
+      simplifiedInvoiceIndicator = None,
+      supplierName               = None,
+      supplierAddress1           = None,
+      supplierAddress2           = None,
+      supplierAddress3           = None,
+      supplierVatRegNumber       = None,
+      supplierTaxIdentifier      = None,
+      invoiceDate                = None,
+      invoiceNumber              = None,
+      currencyCode               = None,
+      taxableAmount              = None,
+      vatAmount                  = None,
+      deductibleVatAmount        = None,
+      updateSequenceNumber       = None
+    )
+
+    val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    // Mock output parameters
+    when(mockCallableStatement.getInt("p_item_number")).thenReturn(4)
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+
+    val result = await(repository.addPurchase(purchaseRequest))
+
+    result shouldBe purchaseResponse
   }
 
 }
