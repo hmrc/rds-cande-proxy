@@ -166,9 +166,12 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           stmt.setBigDecimal("p_taxable_amount", request.taxableAmount.map(_.bigDecimal).orNull)
           stmt.setBigDecimal("p_vat_amount", request.vatAmount.map(_.bigDecimal).orNull)
           stmt.setBigDecimal("p_deductible_vat_amount", request.deductibleVatAmount.map(_.bigDecimal).orNull)
-          stmt.setObject("p_update_seq_number", request.updateSequenceNumber.map(Int.box).orNull)
-          stmt.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
-          stmt.registerOutParameter("p_item_number", OracleTypes.NUMBER)
+          request.updateSequenceNumber match {
+            case Some(n) => stmt.setInt("p_update_seq_number", n)
+            case None    => stmt.setNull("p_update_seq_number", java.sql.Types.NUMERIC)
+          }
+          stmt.registerOutParameter("p_update_seq_number", java.sql.Types.NUMERIC)
+          stmt.registerOutParameter("p_item_number", java.sql.Types.NUMERIC)
 
           stmt.execute()
           logger.info("Data successfully saved in database")
