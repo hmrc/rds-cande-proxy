@@ -150,7 +150,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addPurchase(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) { stmt =>
           // Set input parameters
           stmt.setLong("p_application_id", request.applicationId)
-          stmt.setString("p_goods_description_category", request.goodsDescriptionCategory.orNull)
+          stmt.setString("p_goods_description_category", request.goodsDescriptionCategory)
           stmt.setString("p_goods_description_text", request.goodsDescriptionText.orNull)
           stmt.setString("p_purchase_subcategory", request.purchaseSubcategory.orNull)
           stmt.setString("p_simplified_invoice_indicator", request.simplifiedInvoiceIndicator.orNull)

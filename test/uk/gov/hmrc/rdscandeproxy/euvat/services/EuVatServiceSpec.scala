@@ -114,7 +114,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   "EuVatService.addPurchase" should {
     val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
       applicationId              = 123456,
-      goodsDescriptionCategory   = Some("1234"),
+      goodsDescriptionCategory   = "1",
       goodsDescriptionText       = Some("Fuel"),
       purchaseSubcategory        = None,
       simplifiedInvoiceIndicator = None,
