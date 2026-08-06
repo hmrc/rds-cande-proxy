@@ -130,7 +130,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       taxableAmount              = None,
       vatAmount                  = None,
       deductibleVatAmount        = None,
-      updateSequenceNumber       = None
+      updateSequenceNumber       = 1
     )
 
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)

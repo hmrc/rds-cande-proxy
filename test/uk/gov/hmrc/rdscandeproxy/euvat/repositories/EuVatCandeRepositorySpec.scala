@@ -169,7 +169,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
       taxableAmount              = None,
       vatAmount                  = None,
       deductibleVatAmount        = None,
-      updateSequenceNumber       = None
+      updateSequenceNumber       = 1
     )
 
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
