@@ -34,24 +34,31 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
 
   def getLatestApplications: Action[AnyContent] =
     authorise.async { implicit request =>
-      request.body.asJson
-        .flatMap(_.asOpt[LatestApplicationRequest])
-        .map { latestApplicationRequest =>
-          euVatService
-            .getLatestApplications(latestApplicationRequest)
-            .map { response =>
-              logger.info(s"Latest applications retrieved for VRN: ${latestApplicationRequest.applicantVatRegNumber}")
-              Ok(Json.toJson(response))
-            }
-            .recover { case ex: Exception =>
-              logger.error("Error while retrieving latest applications from oracle database", ex)
-              InternalServerError("Failed to retrieve latest applications")
-            }
-        }
-        .getOrElse {
-          logger.warn("Invalid request body for getLatestApplications")
+      request.body.asJson.flatMap(_.asOpt[LatestApplicationRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for LatestApplicationRequest")
           Future.successful(BadRequest("Invalid request body"))
-        }
+        case Some(latestApplicationRequest) =>
+          if (latestApplicationRequest.applicantVatRegNumber.isEmpty) {
+            logger.warn("Invalid JSON: applicantVatRegNumber cannot be empty")
+            Future.successful(BadRequest("Invalid request: applicantVatRegNumber"))
+          } else {
+            euVatService
+              .getLatestApplications(latestApplicationRequest)
+              .map { response =>
+                if (response.totalApplication < 1) {
+                  logger.warn(s"No record found for vrn: ${latestApplicationRequest.applicantVatRegNumber}")
+                  NotFound(s"No record found for vrn: ${latestApplicationRequest.applicantVatRegNumber}")
+                } else {
+                  Ok(Json.toJson(response))
+                }
+              }
+              .recover { case ex: Exception =>
+                logger.error("Error while retrieving latest applications from oracle database", ex)
+                InternalServerError("Failed to create latest applications")
+              }
+          }
+      }
     }
 
   def addApplication: Action[AnyContent] =
