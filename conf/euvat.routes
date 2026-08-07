@@ -3,3 +3,5 @@
 POST    /get-latest-application     uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getLatestApplications
 
 POST    /create-application         uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication
+
+POST    /add-purchase               uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addPurchase

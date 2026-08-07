@@ -26,9 +26,8 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
@@ -109,6 +108,42 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "add purchase" - {
+      "return 200 and a successful response when DB returns records" in new SetUp {
+        when(mockEuVatService.addPurchase(any()))
+          .thenReturn(Future.successful(purchaseResponse))
+
+        val result: Future[Result] = controller.addPurchase()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(purchaseResponse)
+
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.addPurchase()(
+          fakeRequest.withMethod("POST")
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 and log error when DB call fails" in new SetUp {
+        val exception = new RuntimeException("DB error")
+        when(mockEuVatService.addPurchase(any()))
+          .thenReturn(Future.failed(exception))
+        val result: Future[Result] = controller.addPurchase()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to add purchase")
+      }
+    }
   }
 
   private class SetUp {
@@ -156,6 +191,29 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       applications     = List.empty,
       totalApplication = 0
     )
+
+    val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
+      applicationId              = 123456,
+      goodsDescriptionCategory   = "1",
+      goodsDescriptionText       = Some("Fuel"),
+      purchaseSubcategory        = None,
+      simplifiedInvoiceIndicator = None,
+      supplierName               = None,
+      supplierAddress1           = None,
+      supplierAddress2           = None,
+      supplierAddress3           = None,
+      supplierVatRegNumber       = None,
+      supplierTaxIdentifier      = None,
+      invoiceDate                = None,
+      invoiceNumber              = None,
+      currencyCode               = None,
+      taxableAmount              = None,
+      vatAmount                  = None,
+      deductibleVatAmount        = None,
+      updateSequenceNumber       = 1
+    )
+
+    val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
 
   }
 

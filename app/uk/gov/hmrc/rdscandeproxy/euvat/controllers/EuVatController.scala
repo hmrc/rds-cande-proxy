@@ -21,8 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
@@ -70,6 +69,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             .recover { case ex: Exception =>
               logger.error("Error while creating the refund application", ex)
               InternalServerError("Failed to create refund application")
+            }
+      }
+    }
+
+  def addPurchase: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[AddPurchaseRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for AddPurchaseRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(purchaseRequest) =>
+          euVatService
+            .addPurchase(purchaseRequest)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while adding the purchase", ex)
+              InternalServerError("Failed to add purchase")
             }
       }
     }

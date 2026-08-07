@@ -22,9 +22,8 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.LatestApplicationRequest
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.ApplicationRequest
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
@@ -109,5 +108,44 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
           .thenReturn(Future.failed(new Exception("bang")))
 
         val result = intercept[Exception](service.addApplication(appRequest, "123456789").futureValue)
+        result.getMessage should include("bang")
+  }
+
+  "EuVatService.addPurchase" should {
+    val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
+      applicationId              = 123456,
+      goodsDescriptionCategory   = "1",
+      goodsDescriptionText       = Some("Fuel"),
+      purchaseSubcategory        = None,
+      simplifiedInvoiceIndicator = None,
+      supplierName               = None,
+      supplierAddress1           = None,
+      supplierAddress2           = None,
+      supplierAddress3           = None,
+      supplierVatRegNumber       = None,
+      supplierTaxIdentifier      = None,
+      invoiceDate                = None,
+      invoiceNumber              = None,
+      currencyCode               = None,
+      taxableAmount              = None,
+      vatAmount                  = None,
+      deductibleVatAmount        = None,
+      updateSequenceNumber       = 1
+    )
+
+    val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    "succeed" when:
+      "adding a purchase to the database" in:
+        when(mockConnector.addPurchase(any()))
+          .thenReturn(Future.successful(purchaseResponse))
+        val result = service.addPurchase(purchaseRequest).futureValue
+        result shouldBe purchaseResponse
+
+    "fail" when:
+      "saving to the database" in:
+        when(mockConnector.addPurchase(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.addPurchase(purchaseRequest).futureValue)
         result.getMessage should include("bang")
   }
