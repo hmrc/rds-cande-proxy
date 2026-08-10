@@ -27,8 +27,7 @@ import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.LatestApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
@@ -39,16 +38,24 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
   "EuVatController" - {
 
     "getLatestApplications" - {
-      "return 200 with JSON when service returns latest applications" in new SetUp {
-        when(mockEuVatService.getLatestApplications(any()))
-          .thenReturn(Future.successful(sampleResponse))
+      "return 200 with JSON when service returns successful latest applications response" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any[LatestApplicationRequest]))
+          .thenReturn(Future.successful(latestAppResponse))
 
         val result: Future[Result] = controller.getLatestApplications()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(latestAppRequest))
         )
 
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(sampleResponse)
+        contentAsJson(result) shouldBe Json.toJson(latestAppResponse)
+      }
+
+      "return 400 when service returns no records found if applicantVatRegNumber empty" in new SetUp {
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(latestAppRequest.copy(applicantVatRegNumber = "")))
+        )
+
+        status(result) shouldBe BAD_REQUEST
       }
 
       "return 400 when request body is invalid" in new SetUp {
@@ -59,15 +66,28 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         status(result) shouldBe BAD_REQUEST
       }
 
+      "return 404 if no record found" in new SetUp {
+        when(mockEuVatService.getLatestApplications(any[LatestApplicationRequest]))
+          .thenReturn(Future.successful(latestAppResponse.copy(totalApplication = 0, applications = Nil)))
+
+        val result: Future[Result] = controller.getLatestApplications()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(latestAppRequest))
+        )
+
+        status(result)          shouldBe NOT_FOUND
+        contentAsString(result) shouldBe s"No record found for vrn: ${latestAppRequest.applicantVatRegNumber}"
+      }
+
       "return 500 when service throws exception" in new SetUp {
         when(mockEuVatService.getLatestApplications(any()))
           .thenReturn(Future.failed(new RuntimeException("DB error")))
 
         val result: Future[Result] = controller.getLatestApplications()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sampleRequest))
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(latestAppRequest))
         )
 
-        status(result) shouldBe INTERNAL_SERVER_ERROR
+        status(result)          shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) shouldBe "Failed to create latest applications"
       }
     }
 
@@ -148,6 +168,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
   private class SetUp {
     val mockEuVatService: EuVatService = mock[EuVatService]
+    val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
 
     val appRequest: ApplicationRequest = ApplicationRequest(
       refundingCountryCode          = Some("FR"),
@@ -173,23 +194,32 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
     val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB9999991", 1)
 
-    val controller = new EuVatController(fakeAuthAction, mockEuVatService, cc)
-
-    val sampleRequest: LatestApplicationRequest = LatestApplicationRequest(
+    val latestAppRequest: LatestApplicationRequest = LatestApplicationRequest(
       applicantVatRegNumber = "123456789",
       refundingCountry      = Some("LV"),
       startDate             = Some(LocalDateTime.of(2025, 2, 1, 0, 0)),
-      endDate               = Some(LocalDateTime.of(2025, 5, 31, 0, 0)),
-      representativeId      = Some("rep123"),
+      endDate               = Some(LocalDateTime.of(2025, 5, 31, 23, 59)),
+      representativeId      = None,
       maxNumber             = 10,
       orderBy               = None,
       sortOrder             = None,
       startAt               = None
     )
 
-    val sampleResponse: LatestApplicationResponse = LatestApplicationResponse(
-      applications     = List.empty,
-      totalApplication = 0
+    val latestAppResponse: LatestApplicationResponse = LatestApplicationResponse(
+      totalApplication = 1,
+      applications = List(
+        LatestApplication(
+          applicationId        = 1,
+          refundingCountryCode = "DE",
+          periodStartDate      = LocalDateTime.of(2025, 3, 1, 0, 0),
+          periodEndDate        = LocalDateTime.of(2025, 5, 31, 23, 59),
+          applicationNumber    = "1",
+          applicationStatus    = Some("D"),
+          submissionStatus     = None,
+          applicationVersion   = LocalDateTime.of(2025, 5, 31, 23, 59)
+        )
+      )
     )
 
     val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
