@@ -66,18 +66,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         status(result) shouldBe BAD_REQUEST
       }
 
-      "return 404 if no record found" in new SetUp {
-        when(mockEuVatService.getLatestApplications(any[LatestApplicationRequest]))
-          .thenReturn(Future.successful(latestAppResponse.copy(totalApplication = 0, applications = Nil)))
-
-        val result: Future[Result] = controller.getLatestApplications()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(latestAppRequest))
-        )
-
-        status(result)          shouldBe NOT_FOUND
-        contentAsString(result) shouldBe s"No record found for vrn: ${latestAppRequest.applicantVatRegNumber}"
-      }
-
       "return 500 when service throws exception" in new SetUp {
         when(mockEuVatService.getLatestApplications(any()))
           .thenReturn(Future.failed(new RuntimeException("DB error")))

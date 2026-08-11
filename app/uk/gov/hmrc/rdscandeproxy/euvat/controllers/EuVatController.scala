@@ -45,14 +45,7 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
           } else {
             euVatService
               .getLatestApplications(latestApplicationRequest)
-              .map { response =>
-                if (response.totalApplication < 1) {
-                  logger.warn(s"No record found for vrn: ${latestApplicationRequest.applicantVatRegNumber}")
-                  NotFound(s"No record found for vrn: ${latestApplicationRequest.applicantVatRegNumber}")
-                } else {
-                  Ok(Json.toJson(response))
-                }
-              }
+              .map(response => Ok(Json.toJson(response)))
               .recover { case ex: Exception =>
                 logger.error("Error while retrieving latest applications from oracle database", ex)
                 InternalServerError("Failed to create latest applications")

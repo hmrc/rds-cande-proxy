@@ -37,7 +37,6 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       db.withConnection { connection =>
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getLatestApplications(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
           storedProcedure =>
-
             // Set input parameters
             storedProcedure.setString("p_applicant_vat_reg_number", request.applicantVatRegNumber)
             request.refundingCountry match {
