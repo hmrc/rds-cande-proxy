@@ -217,9 +217,7 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     )
 
     when(mockCallableStatement.getInt("p_count")).thenReturn(3)
-
     val result = repository.getSupplierVrnCount(request).futureValue
-
     result.duplicateCount shouldBe 3
   }
 
@@ -232,10 +230,21 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     )
 
     when(mockCallableStatement.getInt("p_count")).thenReturn(0)
-
     val result = repository.getSupplierVrnCount(request).futureValue
-
     result.duplicateCount shouldBe 0
+  }
+
+  "getSupplierTaxIdentifierDuplicateCount" should "return the duplicate count from proc" in {
+    val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.SupplierTaxIdentifierCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      taxIdentifier = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    when(mockCallableStatement.getInt("p_count")).thenReturn(4)
+    val result = repository.getSupplierTaxIdentifierDuplicateCount(req).futureValue
+    result shouldBe 4
   }
 
 }
