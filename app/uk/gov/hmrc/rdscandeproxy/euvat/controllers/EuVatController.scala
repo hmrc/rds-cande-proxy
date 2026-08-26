@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, ApplicationRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.DuplicateCountResponse
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
@@ -89,6 +89,31 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             .recover { case ex: Exception =>
               logger.error("Error while adding the purchase", ex)
               InternalServerError("Failed to add purchase")
+            }
+      }
+    }
+
+  def getPurchaseDetails: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[GetPurchaseDetailsRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for GetPurchaseDetailsRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(detailsRequest) =>
+          euVatService
+            .getPurchaseDetails(detailsRequest)
+            .map {
+              case Some(response) =>
+                Ok(Json.toJson(response))
+              case None =>
+                logger.error(
+                  s"No purchase record for applicationId ${detailsRequest.applicationId} itemNumber ${detailsRequest.itemNumber}"
+                )
+                InternalServerError("Failed to retrieve purchase details")
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving the purchase details", ex)
+              InternalServerError("Failed to retrieve purchase details")
             }
       }
     }

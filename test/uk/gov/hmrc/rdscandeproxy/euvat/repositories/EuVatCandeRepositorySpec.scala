@@ -24,8 +24,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse}
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.time.LocalDateTime
@@ -181,6 +181,67 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = await(repository.addPurchase(purchaseRequest))
 
     result shouldBe purchaseResponse
+  }
+
+  "getPurchaseDetails" should "return the purchase record with the update sequence number" in {
+    val request = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 4)
+
+    when(mockCallableStatement.getObject("p_purchase_details", classOf[ResultSet])).thenReturn(mockResultSet)
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(7)
+
+    when(mockResultSet.next()).thenReturn(true, false)
+    when(mockResultSet.getString("goods_description_category")).thenReturn("1")
+    when(mockResultSet.getString("goods_description_subcategory")).thenReturn("1.1")
+    when(mockResultSet.getString("goods_description_text")).thenReturn("Fuel")
+    when(mockResultSet.getString("simplified_invoice_indicator")).thenReturn(null)
+    when(mockResultSet.getString("supplier_name")).thenReturn("Supplier Ltd")
+    when(mockResultSet.getString("supplier_address_1")).thenReturn("1 High Street")
+    when(mockResultSet.getString("supplier_address_2")).thenReturn(null)
+    when(mockResultSet.getString("supplier_address_3")).thenReturn(null)
+    when(mockResultSet.getString("supplier_vat_reg_number")).thenReturn("LV40003567907")
+    when(mockResultSet.getString("supplier_tax_identifier")).thenReturn(null)
+    when(mockResultSet.getTimestamp("invoice_date")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2025, 3, 15, 0, 0)))
+    when(mockResultSet.getString("invoice_number")).thenReturn("INV-001")
+    when(mockResultSet.getString("currency_code")).thenReturn("EUR")
+    when(mockResultSet.getBigDecimal("taxable_amount")).thenReturn(new java.math.BigDecimal("100.50"))
+    when(mockResultSet.getBigDecimal("vat_amount")).thenReturn(new java.math.BigDecimal("21.10"))
+    when(mockResultSet.getBigDecimal("deductible_vat_amount")).thenReturn(null)
+
+    val result = repository.getPurchaseDetails(request).futureValue
+
+    result shouldBe Some(
+      GetPurchaseDetailsResponse(
+        goodsDescriptionCode       = "1",
+        goodsDescriptionSubCode    = Some("1.1"),
+        goodsDescriptionText       = Some("Fuel"),
+        simplifiedInvoiceIndicator = None,
+        supplierName               = Some("Supplier Ltd"),
+        supplierAddressLine1       = Some("1 High Street"),
+        supplierAddressLine2       = None,
+        supplierAddressLine3       = None,
+        supplierVatNumber          = Some("LV40003567907"),
+        supplierTaxIdentifier      = None,
+        invoiceDate                = Some(LocalDateTime.of(2025, 3, 15, 0, 0)),
+        invoiceNumber              = Some("INV-001"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal("100.50")),
+        vatAmount                  = Some(BigDecimal("21.10")),
+        deductibleVatAmount        = None,
+        updateSequenceNumber       = 7
+      )
+    )
+  }
+
+  "getPurchaseDetails" should "return None when the cursor holds no purchase record" in {
+    val request = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 99)
+
+    when(mockCallableStatement.getObject("p_purchase_details", classOf[ResultSet])).thenReturn(mockResultSet)
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(7)
+    when(mockResultSet.next()).thenReturn(false)
+
+    val result = repository.getPurchaseDetails(request).futureValue
+
+    result shouldBe None
   }
 
   "getSupplierTaxIdentifierDuplicateCount" should "return the duplicate count from proc" in {
