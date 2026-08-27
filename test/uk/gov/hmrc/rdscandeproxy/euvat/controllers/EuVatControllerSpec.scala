@@ -22,12 +22,12 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse, LatestApplication, LatestApplicationResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest, SupplierVrnCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
@@ -201,12 +201,46 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getSupplierVrnCount" - {
+      "return 200 with JSON when service returns the count" in new SetUp {
+        when(mockEuVatService.getSupplierVrnCount(any()))
+          .thenReturn(Future.successful(vrnCountResponse))
+
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(vrnCountRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(vrnCountResponse)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getSupplierVrnCount(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getSupplierVrnCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(vrnCountRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve supplier VRN count")
+      }
+    }
+
     "getSupplierTaxIdentifierCount" - {
       "return 200 with JSON when service returns count" in new SetUp {
         when(mockEuVatService.getSupplierTaxIdentifierDuplicateCount(any()))
           .thenReturn(Future.successful(4))
 
-        val json = Json.obj(
+        val json: JsObject = Json.obj(
           "applicationId" -> 133,
           "itemNumber"    -> 4,
           "taxIdentifier" -> "500000881",
@@ -233,7 +267,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         when(mockEuVatService.getSupplierTaxIdentifierDuplicateCount(any()))
           .thenReturn(Future.failed(new RuntimeException("DB error")))
 
-        val json = Json.obj(
+        val json: JsObject = Json.obj(
           "applicationId" -> 133,
           "itemNumber"    -> 4,
           "taxIdentifier" -> "500000881",
@@ -248,7 +282,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         contentAsString(result) should include("Failed to retrieve duplicate count")
       }
     }
-
   }
 
   private class SetUp {
@@ -276,7 +309,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       bicCode                       = None,
       bankAccountCurrencyCode       = None
     )
-
     val applicationResponse: ApplicationResponse = ApplicationResponse(1, "GB9999991", 1)
 
     val latestAppRequest: LatestApplicationRequest = LatestApplicationRequest(
@@ -327,7 +359,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       deductibleVatAmount        = None,
       updateSequenceNumber       = 1
     )
-
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
 
     val purchaseDetailsRequest: GetPurchaseDetailsRequest = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 4)
@@ -351,6 +382,14 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       deductibleVatAmount        = Some(BigDecimal("21.10")),
       updateSequenceNumber       = 1
     )
+
+    val vrnCountRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+    val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
   }
 

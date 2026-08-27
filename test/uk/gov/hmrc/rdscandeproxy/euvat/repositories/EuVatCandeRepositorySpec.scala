@@ -24,7 +24,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest, SupplierVrnCountRequest}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse}
 
 import java.sql.{CallableStatement, Connection, ResultSet}
@@ -113,6 +113,31 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
 
     result.totalApplication shouldBe 0
     result.applications     shouldBe List.empty
+  }
+
+  "getLatestApplications" should "set null params when optional fields are absent" in {
+    val request = LatestApplicationRequest(
+      applicantVatRegNumber = "123456789",
+      refundingCountry      = None,
+      startDate             = None,
+      endDate               = None,
+      representativeId      = None,
+      maxNumber             = 10,
+      orderBy               = None,
+      sortOrder             = None,
+      startAt               = None
+    )
+
+    when(mockCallableStatement.getObject("p_applications", classOf[ResultSet])).thenReturn(mockResultSet)
+    when(mockCallableStatement.getInt("p_total_applications")).thenReturn(0)
+    when(mockResultSet.next()).thenReturn(false)
+
+    repository.getLatestApplications(request).futureValue
+
+    verify(mockCallableStatement).setNull("p_refunding_country", java.sql.Types.VARCHAR)
+    verify(mockCallableStatement).setNull("p_start_date", java.sql.Types.DATE)
+    verify(mockCallableStatement).setNull("p_end_date", java.sql.Types.DATE)
+    verify(mockCallableStatement).setNull("p_representative_id", java.sql.Types.VARCHAR)
   }
 
   "addApplication" should "return saved application response" in {
@@ -244,6 +269,32 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     result shouldBe None
   }
 
+  "getSupplierVrnCount" should "return a SupplierVrnCountResponse with the duplicate count" in {
+    val request = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    when(mockCallableStatement.getInt("p_count")).thenReturn(3)
+    val result = repository.getSupplierVrnCount(request).futureValue
+    result.duplicateCount shouldBe 3
+  }
+
+  "getSupplierVrnCount" should "return zero when no duplicates exist" in {
+    val request = SupplierVrnCountRequest(
+      applicationId = 133,
+      itemNumber    = 4,
+      vatNumber     = "500000881",
+      invoiceNumber = "a444"
+    )
+
+    when(mockCallableStatement.getInt("p_count")).thenReturn(0)
+    val result = repository.getSupplierVrnCount(request).futureValue
+    result.duplicateCount shouldBe 0
+  }
+
   "getSupplierTaxIdentifierDuplicateCount" should "return the duplicate count from proc" in {
     val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.SupplierTaxIdentifierCountRequest(
       applicationId = 133,
@@ -252,11 +303,8 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
       invoiceNumber = "a444"
     )
 
-    // Mock output parameter
     when(mockCallableStatement.getInt("p_count")).thenReturn(4)
-
     val result = repository.getSupplierTaxIdentifierDuplicateCount(req).futureValue
-
     result shouldBe 4
   }
 

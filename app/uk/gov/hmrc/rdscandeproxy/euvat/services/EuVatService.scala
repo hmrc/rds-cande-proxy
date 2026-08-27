@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{GetPurchaseDetailsResponse, LatestApplicationResponse}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
@@ -39,9 +38,10 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
   def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] =
     euvatCandeRepository.getPurchaseDetails(request)
 
-  def getSupplierTaxIdentifierDuplicateCount(
-    request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.SupplierTaxIdentifierCountRequest
-  ): Future[Int] =
+  def getSupplierVrnCount(request: SupplierVrnCountRequest): Future[SupplierVrnCountResponse] =
+    euvatCandeRepository.getSupplierVrnCount(request)
+
+  def getSupplierTaxIdentifierDuplicateCount(request: SupplierTaxIdentifierCountRequest): Future[Int] =
     euvatCandeRepository.getSupplierTaxIdentifierDuplicateCount(request)
 
 }

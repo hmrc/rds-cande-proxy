@@ -1,9 +1,8 @@
 # microservice specific routes
 
-POST    /get-latest-application              uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getLatestApplications
-
-POST    /create-application                  uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication
-
-POST    /add-purchase                        uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addPurchase
-POST    /get-purchase-details                uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getPurchaseDetails
-POST    /get-supplier-taxIdentifier-count    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierTaxIdentifierCount
+POST    /get-latest-application             uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getLatestApplications
+POST    /create-application                 uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication
+POST    /add-purchase                       uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addPurchase
+POST    /get-purchase-details               uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getPurchaseDetails
+POST    /get-supplier-vrn-count             uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierVrnCount
+POST    /get-supplier-taxIdentifier-count   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierTaxIdentifierCount

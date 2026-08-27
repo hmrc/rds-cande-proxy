@@ -21,9 +21,8 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.rdscandeproxy.euvat.actions.AuthAction
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest, SupplierTaxIdentifierCountRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.ApplicationResponse
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.DuplicateCountResponse
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, DuplicateCountResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import javax.inject.Inject
@@ -116,6 +115,28 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
               InternalServerError("Failed to retrieve purchase details")
             }
       }
+    }
+
+  def getSupplierVrnCount: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson
+        .flatMap(_.asOpt[SupplierVrnCountRequest])
+        .map { vrnCountRequest =>
+          euVatService
+            .getSupplierVrnCount(vrnCountRequest)
+            .map { response =>
+              logger.info(s"Supplier VRN count retrieved for applicationId: ${vrnCountRequest.applicationId}")
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving supplier VRN count from oracle database", ex)
+              InternalServerError("Failed to retrieve supplier VRN count")
+            }
+        }
+        .getOrElse {
+          logger.warn("Invalid request body for getSupplierVrnCount")
+          Future.successful(BadRequest("Invalid request body"))
+        }
     }
 
   def getSupplierTaxIdentifierCount: Action[AnyContent] =
