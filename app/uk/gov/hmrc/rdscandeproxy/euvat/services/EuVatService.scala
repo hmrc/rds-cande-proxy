@@ -38,6 +38,9 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
   def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] =
     euvatCandeRepository.getPurchaseDetails(request)
 
+  def deletePurchase(request: DeletePurchaseRequest): Future[DeletePurchaseResponse] =
+    euvatCandeRepository.deletePurchaseDetails(request)
+
   def getSupplierVrnCount(request: SupplierVrnCountRequest): Future[SupplierVrnCountResponse] =
     euvatCandeRepository.getSupplierVrnCount(request)
 

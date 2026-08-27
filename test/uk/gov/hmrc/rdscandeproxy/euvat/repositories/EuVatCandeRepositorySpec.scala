@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, DeletePurchaseResponse, GetPurchaseDetailsResponse}
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.time.LocalDateTime
@@ -267,6 +267,19 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = repository.getPurchaseDetails(request).futureValue
 
     result shouldBe None
+  }
+
+  "deletePurchaseDetails" should "return the new update sequence number after the delete" in {
+    val request = DeletePurchaseRequest(applicationId = 123456, itemNumber = 4, updateSequenceNumber = 7)
+
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(8)
+
+    val result = repository.deletePurchaseDetails(request).futureValue
+
+    result shouldBe DeletePurchaseResponse(updateSequenceNumber = 8)
+    verify(mockCallableStatement).setLong("p_application_id", 123456L)
+    verify(mockCallableStatement).setInt("p_item_number", 4)
+    verify(mockCallableStatement).setInt("p_update_seq_number", 7)
   }
 
   "getSupplierVrnCount" should "return a SupplierVrnCountResponse with the duplicate count" in {

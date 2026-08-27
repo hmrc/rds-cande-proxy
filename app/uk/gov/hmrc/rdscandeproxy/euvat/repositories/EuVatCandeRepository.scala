@@ -220,6 +220,31 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  def deletePurchaseDetails(request: DeletePurchaseRequest): Future[DeletePurchaseResponse] = {
+    logger.info(
+      s"Calling stored procedure deletePurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deletePurchaseDetails(?, ?, ?)}")) { storedProcedure =>
+          // Set input parameters
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+          storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
+
+          // Register the IN OUT parameter
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+          // Execute
+          storedProcedure.execute()
+          logger.info("Purchase record successfully deleted from database")
+
+          DeletePurchaseResponse(storedProcedure.getInt("p_update_seq_number"))
+        }
+      }
+    }
+  }
+
   def addPurchase(request: AddPurchaseRequest): Future[AddPurchaseResponse] = {
     logger.info(s"************* calling stored procedure to add purchase for applicationId: ${request.applicationId}")
     Future {

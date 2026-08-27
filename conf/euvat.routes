@@ -4,5 +4,6 @@ POST    /get-latest-application             uk.gov.hmrc.rdscandeproxy.euvat.cont
 POST    /create-application                 uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addApplication
 POST    /add-purchase                       uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addPurchase
 POST    /get-purchase-details               uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getPurchaseDetails
+DELETE  /delete-purchase                    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deletePurchase
 POST    /get-supplier-vrn-count             uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierVrnCount
 POST    /get-supplier-taxIdentifier-count   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierTaxIdentifierCount
