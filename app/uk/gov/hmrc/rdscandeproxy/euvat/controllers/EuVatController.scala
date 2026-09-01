@@ -25,7 +25,6 @@ import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, DuplicateCountResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
-import java.sql.SQLException
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -86,13 +85,9 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             .map { response =>
               Ok(Json.toJson(response))
             }
-            .recover {
-              case ex: SQLException if ex.getErrorCode == 20001 =>
-                logger.warn(s"No refund application record for applicationId ${purchaseRequest.applicationId}")
-                NotFound("No refund application record for the applicationId")
-              case ex: Exception =>
-                logger.error("Error while adding the purchase", ex)
-                InternalServerError("Failed to add purchase")
+            .recover { case ex: Exception =>
+              logger.error("Error while adding the purchase", ex)
+              InternalServerError("Failed to add purchase")
             }
       }
     }

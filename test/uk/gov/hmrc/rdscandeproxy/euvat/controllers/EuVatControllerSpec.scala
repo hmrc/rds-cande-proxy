@@ -30,7 +30,6 @@ import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddP
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
-import java.sql.SQLException
 import java.time.LocalDateTime
 import scala.concurrent.Future
 
@@ -151,18 +150,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
         contentAsString(result) should include("Failed to add purchase")
-      }
-
-      "return 404 when the database reports no refund application record for the applicationId" in new SetUp {
-        when(mockEuVatService.addPurchase(any()))
-          .thenReturn(Future.failed(new SQLException("ORA-20001: No Refund_Application record", "72000", 20001)))
-
-        val result: Future[Result] = controller.addPurchase()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseRequest))
-        )
-
-        status(result)          shouldBe NOT_FOUND
-        contentAsString(result) shouldBe "No refund application record for the applicationId"
       }
     }
 
