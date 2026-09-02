@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse, LatestApplicationResponse, SupplierVrnCountResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
