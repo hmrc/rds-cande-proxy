@@ -19,7 +19,6 @@ package uk.gov.hmrc.rdscandeproxy.euvat.services
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.UpdatePurchaseDetailsResponse
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
