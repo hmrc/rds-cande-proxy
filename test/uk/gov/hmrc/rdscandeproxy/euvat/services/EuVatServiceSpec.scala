@@ -22,8 +22,8 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplicationResponse, SupplierVrnCountResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import java.time.LocalDateTime
@@ -146,6 +146,50 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         when(mockConnector.addPurchase(any()))
           .thenReturn(Future.failed(new Exception("bang")))
         val result = intercept[Exception](service.addPurchase(purchaseRequest).futureValue)
+        result.getMessage should include("bang")
+  }
+
+  "EuVatService.getPurchaseDetails" should {
+    val detailsRequest: GetPurchaseDetailsRequest = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 4)
+
+    val detailsResponse: GetPurchaseDetailsResponse = GetPurchaseDetailsResponse(
+      goodsDescriptionCode       = "1",
+      goodsDescriptionSubCode    = None,
+      goodsDescriptionText       = Some("Fuel"),
+      simplifiedInvoiceIndicator = None,
+      supplierName               = None,
+      supplierAddressLine1       = None,
+      supplierAddressLine2       = None,
+      supplierAddressLine3       = None,
+      supplierVatNumber          = None,
+      supplierTaxIdentifier      = None,
+      invoiceDate                = None,
+      invoiceNumber              = None,
+      currencyCode               = None,
+      taxableAmount              = None,
+      vatAmount                  = None,
+      deductibleVatAmount        = None,
+      updateSequenceNumber       = 1
+    )
+
+    "succeed" when:
+      "retrieving a purchase record" in:
+        when(mockConnector.getPurchaseDetails(any()))
+          .thenReturn(Future.successful(Some(detailsResponse)))
+        val result = service.getPurchaseDetails(detailsRequest).futureValue
+        result shouldBe Some(detailsResponse)
+
+      "no purchase record exists" in:
+        when(mockConnector.getPurchaseDetails(any()))
+          .thenReturn(Future.successful(None))
+        val result = service.getPurchaseDetails(detailsRequest).futureValue
+        result shouldBe None
+
+    "fail" when:
+      "reading from the database" in:
+        when(mockConnector.getPurchaseDetails(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.getPurchaseDetails(detailsRequest).futureValue)
         result.getMessage should include("bang")
   }
 

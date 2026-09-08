@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rdscandeproxy.euvat.services
 
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplicationResponse, SupplierVrnCountResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
 
 import javax.inject.Inject
@@ -34,6 +34,9 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository) {
 
   def addPurchase(purchaseRequest: AddPurchaseRequest): Future[AddPurchaseResponse] =
     euvatCandeRepository.addPurchase(purchaseRequest)
+
+  def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] =
+    euvatCandeRepository.getPurchaseDetails(request)
 
   def getSupplierVrnCount(request: SupplierVrnCountRequest): Future[SupplierVrnCountResponse] =
     euvatCandeRepository.getSupplierVrnCount(request)

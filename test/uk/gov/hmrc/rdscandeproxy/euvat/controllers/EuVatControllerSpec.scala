@@ -26,8 +26,8 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, GetPurchaseDetailsRequest, LatestApplicationRequest, SupplierVrnCountRequest}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
 
 import java.time.LocalDateTime
@@ -150,6 +150,54 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
         contentAsString(result) should include("Failed to add purchase")
+      }
+    }
+
+    "getPurchaseDetails" - {
+      "return 200 and the purchase details when the purchase record exists" in new SetUp {
+        when(mockEuVatService.getPurchaseDetails(any()))
+          .thenReturn(Future.successful(Some(purchaseDetailsResponse)))
+
+        val result: Future[Result] = controller.getPurchaseDetails()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseDetailsRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(purchaseDetailsResponse)
+      }
+
+      "return 500 when no purchase record exists for the applicationId and itemNumber" in new SetUp {
+        when(mockEuVatService.getPurchaseDetails(any()))
+          .thenReturn(Future.successful(None))
+
+        val result: Future[Result] = controller.getPurchaseDetails()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseDetailsRequest))
+        )
+
+        status(result)          shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) shouldBe "Failed to retrieve purchase details"
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getPurchaseDetails()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getPurchaseDetails(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getPurchaseDetails()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(purchaseDetailsRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve purchase details")
       }
     }
 
@@ -312,6 +360,28 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       updateSequenceNumber       = 1
     )
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    val purchaseDetailsRequest: GetPurchaseDetailsRequest = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 4)
+
+    val purchaseDetailsResponse: GetPurchaseDetailsResponse = GetPurchaseDetailsResponse(
+      goodsDescriptionCode       = "1",
+      goodsDescriptionSubCode    = Some("1.1"),
+      goodsDescriptionText       = Some("Fuel"),
+      simplifiedInvoiceIndicator = Some("N"),
+      supplierName               = Some("Supplier Ltd"),
+      supplierAddressLine1       = Some("1 High Street"),
+      supplierAddressLine2       = Some("Riga"),
+      supplierAddressLine3       = None,
+      supplierVatNumber          = Some("LV40003567907"),
+      supplierTaxIdentifier      = None,
+      invoiceDate                = Some(LocalDateTime.of(2025, 3, 15, 0, 0)),
+      invoiceNumber              = Some("INV-001"),
+      currencyCode               = Some("EUR"),
+      taxableAmount              = Some(BigDecimal("100.50")),
+      vatAmount                  = Some(BigDecimal("21.10")),
+      deductibleVatAmount        = Some(BigDecimal("21.10")),
+      updateSequenceNumber       = 1
+    )
 
     val vrnCountRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
       applicationId = 133,

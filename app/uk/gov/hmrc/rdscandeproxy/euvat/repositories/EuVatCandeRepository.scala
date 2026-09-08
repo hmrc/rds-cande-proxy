@@ -19,8 +19,8 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.{AddPurchaseRequest, AddPurchaseResponse, ApplicationRequest, LatestApplicationRequest, SupplierVrnCountRequest}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, LatestApplication, LatestApplicationResponse, SupplierVrnCountResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
 import java.sql.ResultSet
 import java.time.LocalDateTime
@@ -97,9 +97,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  def getSupplierTaxIdentifierDuplicateCount(
-    request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.SupplierTaxIdentifierCountRequest
-  ): Future[Int] = {
+  def getSupplierTaxIdentifierDuplicateCount(request: SupplierTaxIdentifierCountRequest): Future[Int] = {
     logger.info(
       s"Calling stored procedure getSupplierTaxIdentifierCount for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}"
     )
@@ -163,6 +161,60 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
               stmt.getString("p_application_number"),
               stmt.getInt("p_update_seq_number")
             )
+        }
+      }
+    }
+  }
+
+  def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] = {
+    logger.info(
+      s"Calling stored procedure getPurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getPurchaseDetails(?, ?, ?, ?)}")) { storedProcedure =>
+          // Set input parameters
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+
+          // Register output parameters
+          storedProcedure.registerOutParameter("p_purchase_details", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+          // Execute
+          storedProcedure.execute()
+
+          // Retrieve output parameters
+          val updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          val rs = storedProcedure.getObject("p_purchase_details", classOf[ResultSet])
+
+          Using.resource(rs) { cursor =>
+            if (cursor.next()) {
+              Some(
+                GetPurchaseDetailsResponse(
+                  goodsDescriptionCode       = cursor.getString("goods_description_category"),
+                  goodsDescriptionSubCode    = Option(cursor.getString("goods_description_subcategory")),
+                  goodsDescriptionText       = Option(cursor.getString("goods_description_text")),
+                  simplifiedInvoiceIndicator = Option(cursor.getString("simplified_invoice_indicator")),
+                  supplierName               = Option(cursor.getString("supplier_name")),
+                  supplierAddressLine1       = Option(cursor.getString("supplier_address_1")),
+                  supplierAddressLine2       = Option(cursor.getString("supplier_address_2")),
+                  supplierAddressLine3       = Option(cursor.getString("supplier_address_3")),
+                  supplierVatNumber          = Option(cursor.getString("supplier_vat_reg_number")),
+                  supplierTaxIdentifier      = Option(cursor.getString("supplier_tax_identifier")),
+                  invoiceDate                = Option(cursor.getTimestamp("invoice_date")).map(_.toLocalDateTime),
+                  invoiceNumber              = Option(cursor.getString("invoice_number")),
+                  currencyCode               = Option(cursor.getString("currency_code")),
+                  taxableAmount              = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)),
+                  vatAmount                  = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)),
+                  deductibleVatAmount        = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)),
+                  updateSequenceNumber       = updateSequenceNumber
+                )
+              )
+            } else {
+              None
+            }
+          }
         }
       }
     }
