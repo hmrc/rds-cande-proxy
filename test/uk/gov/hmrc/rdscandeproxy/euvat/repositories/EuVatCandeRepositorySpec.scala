@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
-import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.{ApplicationResponse, GetPurchaseDetailsResponse}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
 import java.sql.{CallableStatement, Connection, ResultSet}
 import java.time.LocalDateTime
@@ -50,6 +50,20 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     when(db.withConnection(any())).thenAnswer { invocation =>
       val func = invocation.getArgument(0, classOf[Connection => Any])
       func(mockConnection) // Return the result of the lambda function passed to withConnection
+    }
+
+    when(db.withTransaction(any())).thenAnswer { invocation =>
+      val func = invocation.getArgument(0, classOf[Connection => Any])
+      try {
+        val result = func(mockConnection)
+        mockConnection.commit()
+        result
+      } catch {
+        case ex: Throwable =>
+          try mockConnection.rollback()
+          catch { case _: Throwable => () }
+          throw ex
+      }
     }
 
     // When prepareCall is invoked on the connection, return the mocked callable statement
@@ -465,6 +479,49 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     result shouldBe 9
     // expect 3 prepareCall invocations: category, subcategory, details
     verify(mockConnection, times(3)).prepareCall(any())
+  }
+
+  "updatePurchaseDetails" should "rollback the transaction and propagate exception when an intermediate SP fails" in {
+    val req = UpdatePurchaseDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = Some("10.4.1"),
+      goodsDescriptionText        = Some("office stationery and consumables"),
+      simplifiedInvoiceIndicator  = Some("N"),
+      supplierName                = Some("Finnish International"),
+      supplierAddress1            = Some("356 High Street"),
+      supplierAddress2            = Some("Rochdale"),
+      supplierAddress3            = Some("England"),
+      supplierVatRegNumber        = Some("500000881"),
+      supplierTaxIdentifier       = Some(""),
+      invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      invoiceNumber               = Some("a444"),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1
+    )
+
+    val cs1 = mock(classOf[CallableStatement])
+    val cs2 = mock(classOf[CallableStatement])
+    val cs3 = mock(classOf[CallableStatement])
+    val cs4 = mock(classOf[CallableStatement])
+
+    when(mockConnection.prepareCall(any())).thenReturn(cs1, cs2, cs3, cs4)
+
+    when(cs1.getInt("p_update_seq_number")).thenReturn(2)
+    when(cs2.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+    val thrown = intercept[Exception] {
+      repository.updatePurchaseDetails(req).futureValue
+    }
+
+    thrown.getMessage should include("SP failure")
+
+    verify(mockConnection).rollback()
+    verify(mockConnection, never()).commit()
   }
 
 }

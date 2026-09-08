@@ -175,13 +175,9 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
               logger.info(s"updatePurchaseDetails response body: $responseJson")
               Ok(Json.toJson(response))
             }
-            .recover {
-              case sqlEx: java.sql.SQLException if sqlEx.getErrorCode == 20000 =>
-                logger.warn("Concurrent update detected while updating purchase details", sqlEx)
-                Conflict("Refund application already updated by another session")
-              case ex: Exception =>
-                logger.error("Error while updating purchase details", ex)
-                InternalServerError("Failed to update purchase details")
+            .recover { case ex: Exception =>
+              logger.error("Error while updating purchase details", ex)
+              InternalServerError("Failed to update purchase details")
             }
       }
     }

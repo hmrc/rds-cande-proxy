@@ -279,16 +279,14 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  private def callUpdatePurchaseDetailsSPWithConn(
+  private def callUpdatePurchaseDetails(
     connection: Connection,
-    request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest,
+    request: UpdatePurchaseDetailsRequest,
     currentSeq: Int
   ): Int = {
     logger.info(s"Calling stored procedure updatePurchaseDetails for application: ${request.applicationId} item: ${request.itemNumber}")
     Using.resource(
-      connection.prepareCall(
-        "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}"
-      )
+      connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
     ) { storedProcedure =>
       storedProcedure.setLong("p_application_id", request.applicationId)
       storedProcedure.setInt("p_item_number", request.itemNumber)
@@ -324,12 +322,12 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  private def updatePurchaseSubCategoryWithConn(connection: Connection,
-                                                applicationId: Long,
-                                                itemNumber: Int,
-                                                purchaseSubcategory: String,
-                                                updateSeqNumber: Int
-                                               ): Int = {
+  private def updatePurchaseSubCategory(connection: Connection,
+                                        applicationId: Long,
+                                        itemNumber: Int,
+                                        purchaseSubcategory: String,
+                                        updateSeqNumber: Int
+                                       ): Int = {
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseSubCategory(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
@@ -341,12 +339,12 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  private def updatePurchaseDescriptionWithConn(connection: Connection,
-                                                applicationId: Long,
-                                                itemNumber: Int,
-                                                purchaseDescription: String,
-                                                updateSeqNumber: Int
-                                               ): Int = {
+  private def updatePurchaseDescription(connection: Connection,
+                                        applicationId: Long,
+                                        itemNumber: Int,
+                                        purchaseDescription: String,
+                                        updateSeqNumber: Int
+                                       ): Int = {
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDescription(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
@@ -358,12 +356,12 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  private def updatePurchaseCategoryWithConn(connection: Connection,
-                                             applicationId: Long,
-                                             itemNumber: Int,
-                                             goodsDescriptionCategory: String,
-                                             updateSeqNumber: Int
-                                            ): Int = {
+  private def updatePurchaseCategory(connection: Connection,
+                                     applicationId: Long,
+                                     itemNumber: Int,
+                                     goodsDescriptionCategory: String,
+                                     updateSeqNumber: Int
+                                    ): Int = {
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseCategory(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
@@ -375,28 +373,29 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  def updatePurchaseDetails(request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest): Future[Int] = {
-    // Run the sequence of stored-proc updates on a single DB connection to avoid lost-update due to separate connections.
+  def updatePurchaseDetails(request: UpdatePurchaseDetailsRequest): Future[Int] = {
+    // Run the sequence of stored-proc updates on a single DB connection/transaction to avoid lost-update due to separate connections.
     Future {
-      db.withConnection { connection =>
-        val seqAfterCategory = updatePurchaseCategoryWithConn(connection,
-                                                              request.applicationId,
-                                                              request.itemNumber,
-                                                              request.goodsDescriptionCategory,
-                                                              request.updateSequenceNumber
-                                                             )
+      db.withTransaction { connection =>
+        val seqAfterCategory = updatePurchaseCategory(
+          connection,
+          request.applicationId,
+          request.itemNumber,
+          request.goodsDescriptionCategory,
+          request.updateSequenceNumber
+        )
 
         val seqAfterDescription = request.goodsDescriptionText match {
-          case Some(text) => updatePurchaseDescriptionWithConn(connection, request.applicationId, request.itemNumber, text, seqAfterCategory)
+          case Some(text) => updatePurchaseDescription(connection, request.applicationId, request.itemNumber, text, seqAfterCategory)
           case None       => seqAfterCategory
         }
 
         val seqAfterSubCategory = request.goodsDescriptionSubCategory match {
-          case Some(sub) => updatePurchaseSubCategoryWithConn(connection, request.applicationId, request.itemNumber, sub, seqAfterDescription)
+          case Some(sub) => updatePurchaseSubCategory(connection, request.applicationId, request.itemNumber, sub, seqAfterDescription)
           case None      => seqAfterDescription
         }
 
-        callUpdatePurchaseDetailsSPWithConn(connection, request, seqAfterSubCategory)
+        callUpdatePurchaseDetails(connection, request, seqAfterSubCategory)
       }
     }
   }
