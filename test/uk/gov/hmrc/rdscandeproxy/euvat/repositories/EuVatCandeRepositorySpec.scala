@@ -17,7 +17,7 @@
 package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 
 import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito.*
+import org.mockito.Mockito.{inOrder as mockInOrder, mock, never, times, verify, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.flatspec.AnyFlatSpec
@@ -381,8 +381,14 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     val result = repository.updatePurchaseDetails(req).futureValue
 
     result shouldBe 2
-    // expect 4 prepareCall invocations: category, description, subcategory, details
     verify(mockConnection, times(4)).prepareCall(any())
+    val inOrderVerifier = mockInOrder(mockConnection)
+    inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseCategory(?, ?, ?, ?)}")
+    inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseSubCategory(?, ?, ?, ?)}")
+    inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDescription(?, ?, ?, ?)}")
+    inOrderVerifier
+      .verify(mockConnection)
+      .prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
   }
 
   "updatePurchaseDetails" should "call prepareCall twice when optional description/subcategory absent" in {

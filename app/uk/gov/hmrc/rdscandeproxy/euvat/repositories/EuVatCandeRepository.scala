@@ -374,7 +374,6 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   }
 
   def updatePurchaseDetails(request: UpdatePurchaseDetailsRequest): Future[Int] = {
-    // Run the sequence of stored-proc updates on a single DB connection/transaction to avoid lost-update due to separate connections.
     Future {
       db.withTransaction { connection =>
         val seqAfterCategory = updatePurchaseCategory(
@@ -385,17 +384,17 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           request.updateSequenceNumber
         )
 
-        val seqAfterDescription = request.goodsDescriptionText match {
-          case Some(text) => updatePurchaseDescription(connection, request.applicationId, request.itemNumber, text, seqAfterCategory)
-          case None       => seqAfterCategory
-        }
-
         val seqAfterSubCategory = request.goodsDescriptionSubCategory match {
-          case Some(sub) => updatePurchaseSubCategory(connection, request.applicationId, request.itemNumber, sub, seqAfterDescription)
-          case None      => seqAfterDescription
+          case Some(sub) => updatePurchaseSubCategory(connection, request.applicationId, request.itemNumber, sub, seqAfterCategory)
+          case None      => seqAfterCategory
         }
 
-        callUpdatePurchaseDetails(connection, request, seqAfterSubCategory)
+        val seqAfterDescription = request.goodsDescriptionText match {
+          case Some(text) => updatePurchaseDescription(connection, request.applicationId, request.itemNumber, text, seqAfterSubCategory)
+          case None       => seqAfterSubCategory
+        }
+
+        callUpdatePurchaseDetails(connection, request, seqAfterDescription)
       }
     }
   }
