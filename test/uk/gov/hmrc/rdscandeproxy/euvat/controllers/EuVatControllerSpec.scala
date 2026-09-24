@@ -360,6 +360,41 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "deleteApplication" - {
+      "return 200 when service deletes the application" in new SetUp {
+        when(mockEuVatService.deleteApplication(any())).thenReturn(Future.successful(()))
+
+        val json = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteApplication()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.obj()
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.deleteApplication()(fakeRequest.withMethod("DELETE"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.deleteApplication(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val json = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteApplication()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to delete refund application")
+      }
+    }
+
   }
 
   private class SetUp {

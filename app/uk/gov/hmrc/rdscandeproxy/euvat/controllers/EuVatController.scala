@@ -73,6 +73,27 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def deleteApplication: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson
+        .flatMap(_.asOpt[uk.gov.hmrc.rdscandeproxy.euvat.models.requests.DeleteApplicationRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for DeleteApplicationRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .deleteApplication(req)
+            .map { _ =>
+              val responseJson = Json.obj()
+              Ok(responseJson)
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while deleting the refund application", ex)
+              InternalServerError("Failed to delete refund application")
+            }
+      }
+    }
+
   def addPurchase: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[AddPurchaseRequest]) match {
