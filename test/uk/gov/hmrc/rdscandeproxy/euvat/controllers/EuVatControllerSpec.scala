@@ -370,8 +370,8 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
           fakeRequest.withMethod("DELETE").withJsonBody(json)
         )
 
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.obj()
+        status(result)          shouldBe OK
+        contentAsString(result) shouldBe ""
       }
 
       "return 400 when request body is missing" in new SetUp {

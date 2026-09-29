@@ -83,10 +83,7 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
         case Some(req) =>
           euVatService
             .deleteApplication(req)
-            .map { _ =>
-              val responseJson = Json.obj()
-              Ok(responseJson)
-            }
+            .map(_ => Ok)
             .recover { case ex: Exception =>
               logger.error("Error while deleting the refund application", ex)
               InternalServerError("Failed to delete refund application")
