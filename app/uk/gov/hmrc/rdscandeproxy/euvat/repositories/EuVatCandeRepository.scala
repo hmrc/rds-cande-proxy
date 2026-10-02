@@ -166,6 +166,90 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  def addImportation(request: AddImportRequest): Future[AddImportResponse] = {
+    logger.info(s"Calling stored procedure addImportation for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addImportation(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+          storedProcedure =>
+            storedProcedure.setLong("p_application_id", request.applicationId)
+            storedProcedure.setString("p_goods_description_category", request.goodsDescriptionCategory)
+            request.goodsDescriptionText match {
+              case Some(t) => storedProcedure.setString("p_goods_description_text", t)
+              case None    => storedProcedure.setNull("p_goods_description_text", OracleTypes.VARCHAR)
+            }
+            request.importationSubcategory match {
+              case Some(s) => storedProcedure.setString("p_importation_subcategory", s)
+              case None    => storedProcedure.setNull("p_importation_subcategory", OracleTypes.VARCHAR)
+            }
+            request.hasSadReferenceNumber match {
+              case Some(h) => storedProcedure.setString("p_has_sad_reference_number", h)
+              case None    => storedProcedure.setNull("p_has_sad_reference_number", OracleTypes.VARCHAR)
+            }
+            request.sadReferenceNumber match {
+              case Some(s) => storedProcedure.setString("p_sad_reference_number", s)
+              case None    => storedProcedure.setNull("p_sad_reference_number", OracleTypes.VARCHAR)
+            }
+            request.supplierAddressLine1 match {
+              case Some(a) => storedProcedure.setString("p_supplier_address_1", a)
+              case None    => storedProcedure.setNull("p_supplier_address_1", OracleTypes.VARCHAR)
+            }
+            request.supplierAddressLine2 match {
+              case Some(a) => storedProcedure.setString("p_supplier_address_2", a)
+              case None    => storedProcedure.setNull("p_supplier_address_2", OracleTypes.VARCHAR)
+            }
+            request.supplierAddressLine3 match {
+              case Some(a) => storedProcedure.setString("p_supplier_address_3", a)
+              case None    => storedProcedure.setNull("p_supplier_address_3", OracleTypes.VARCHAR)
+            }
+            request.referenceInformation match {
+              case Some(r) => storedProcedure.setString("p_reference_information", r)
+              case None    => storedProcedure.setNull("p_reference_information", OracleTypes.VARCHAR)
+            }
+            request.issuingDate match {
+              case Some(d) => storedProcedure.setDate("p_issuing_date", java.sql.Date.valueOf(d.toLocalDate))
+              case None    => storedProcedure.setNull("p_issuing_date", java.sql.Types.DATE)
+            }
+            request.supplierName match {
+              case Some(n) => storedProcedure.setString("p_supplier_name", n)
+              case None    => storedProcedure.setNull("p_supplier_name", OracleTypes.VARCHAR)
+            }
+            request.supplierCountryCode match {
+              case Some(c) => storedProcedure.setString("p_supplier_country_code", c)
+              case None    => storedProcedure.setNull("p_supplier_country_code", OracleTypes.VARCHAR)
+            }
+            request.currencyCode match {
+              case Some(c) => storedProcedure.setString("p_currency_code", c)
+              case None    => storedProcedure.setNull("p_currency_code", OracleTypes.VARCHAR)
+            }
+            request.taxableAmount match {
+              case Some(v) => storedProcedure.setBigDecimal("p_taxable_amount", v.bigDecimal)
+              case None    => storedProcedure.setNull("p_taxable_amount", OracleTypes.NUMBER)
+            }
+            request.vatAmount match {
+              case Some(v) => storedProcedure.setBigDecimal("p_vat_amount", v.bigDecimal)
+              case None    => storedProcedure.setNull("p_vat_amount", OracleTypes.NUMBER)
+            }
+            request.deductibleVatAmount match {
+              case Some(v) => storedProcedure.setBigDecimal("p_deductible_vat_amount", v.bigDecimal)
+              case None    => storedProcedure.setNull("p_deductible_vat_amount", OracleTypes.NUMBER)
+            }
+            storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
+
+            storedProcedure.registerOutParameter("p_item_number", OracleTypes.NUMBER)
+            storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+            storedProcedure.execute()
+
+            val itemNumber = storedProcedure.getInt("p_item_number")
+            val updateSeq = storedProcedure.getInt("p_update_seq_number")
+
+            AddImportResponse(itemNumber = itemNumber, updateSequenceNumber = updateSeq)
+        }
+      }
+    }
+  }
+
   def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] = {
     logger.info(
       s"Calling stored procedure getPurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}"
