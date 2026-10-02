@@ -213,13 +213,30 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
 
     val purchaseResponse: AddPurchaseResponse = AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)
 
-    // Mock output parameters
     when(mockCallableStatement.getInt("p_item_number")).thenReturn(4)
     when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
 
     val result = await(repository.addPurchase(purchaseRequest))
 
     result shouldBe purchaseResponse
+  }
+
+  "addImportation" should "return import response" in {
+    val importRequest: AddImportRequest = AddImportRequest(
+      applicationId            = 123456,
+      goodsDescriptionCategory = "3",
+      goodsDescriptionText     = Some("Electronics"),
+      updateSequenceNumber     = 1
+    )
+
+    val importResponse: AddImportResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    when(mockCallableStatement.getInt("p_item_number")).thenReturn(4)
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+
+    val result = await(repository.addImportation(importRequest))
+
+    result shouldBe importResponse
   }
 
   "getPurchaseDetails" should "return the purchase record with the update sequence number" in {
