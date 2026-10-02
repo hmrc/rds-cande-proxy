@@ -177,4 +177,23 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def updateApplicationDetails: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[UpdateApplicationDetailsRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for UpdateApplicationDetailsRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .updateApplicationDetails(req)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while updating application details", ex)
+              InternalServerError("Failed to update application details")
+            }
+      }
+    }
+
 }
