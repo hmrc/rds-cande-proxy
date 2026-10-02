@@ -439,6 +439,53 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "updateApplicationDetails" - {
+      "return 200 with the new update sequence number when the update succeeds" in new SetUp {
+        when(mockEuVatService.updateApplicationDetails(any()))
+          .thenReturn(Future.successful(updateAppDetailsResponse))
+
+        val result: Future[Result] = controller.updateApplicationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateAppDetailsRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(updateAppDetailsResponse)
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.updateApplicationDetails()(
+          fakeRequest.withMethod("PUT")
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 400 when a mandatory field is missing" in new SetUp {
+        val json: JsObject = Json.toJson(updateAppDetailsRequest).as[JsObject] - "refundingCountry"
+
+        val result: Future[Result] = controller.updateApplicationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(json)
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when the service fails" in new SetUp {
+        when(mockEuVatService.updateApplicationDetails(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.updateApplicationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateAppDetailsRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to update application details")
+      }
+    }
+
   }
 
   private class SetUp {
@@ -495,6 +542,30 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         )
       )
     )
+
+    val updateAppDetailsRequest: UpdateApplicationDetailsRequest = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = Some("en"),
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = Some("AO"),
+      representativeEmailAddress = Some("johnbloggs@hotmail.com"),
+      representativePhoneNumber  = Some("01952233248"),
+      bankAccountOwnerName       = Some("test account 1"),
+      bankAccountOwnerType       = Some("applicant"),
+      ibanCode                   = Some("RoCe/FJvoYSi6rSsMQ5D8UU9QirCB9MZXjC6wuYDyhc="),
+      bicCode                    = Some("FOJFkUjXAjPmZTcK4WRCyw=="),
+      bankAccountCurrencyCode    = Some("EUR"),
+      businessActivityCode2      = Some("4477"),
+      businessActivityCode3      = Some("2233"),
+      cipherText                 = Some("badd2539694a0b3fd547b7cfcb77eefe"),
+      encryptionStatus           = Some("M"),
+      updateSequenceNumber       = 30
+    )
+    val updateAppDetailsResponse: UpdateApplicationDetailsResponse = UpdateApplicationDetailsResponse(32)
 
     val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
       applicationId              = 123456,
