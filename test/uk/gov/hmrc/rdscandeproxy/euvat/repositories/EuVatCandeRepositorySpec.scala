@@ -542,4 +542,164 @@ class EuVatCandeRepositorySpec extends AnyFlatSpec with Matchers with BeforeAndA
     verify(mockConnection, never()).commit()
   }
 
+  "updateApplicationDetails" should "only call the details SP when applicationLanguage is absent" in {
+    val req = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = None,
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = None,
+      representativeEmailAddress = None,
+      representativePhoneNumber  = None,
+      bankAccountOwnerName       = None,
+      bankAccountOwnerType       = None,
+      ibanCode                   = None,
+      bicCode                    = None,
+      bankAccountCurrencyCode    = None,
+      businessActivityCode2      = None,
+      businessActivityCode3      = None,
+      cipherText                 = None,
+      encryptionStatus           = None,
+      updateSequenceNumber       = 30
+    )
+
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(31)
+
+    val result = repository.updateApplicationDetails(req).futureValue
+
+    result shouldBe 31
+    verify(mockConnection, times(1)).prepareCall(any())
+    verify(mockConnection).prepareCall(
+      "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}"
+    )
+    verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationLanguage(?, ?, ?)}")
+  }
+
+  "updateApplicationDetails" should "call details then language, chaining the update sequence number" in {
+    val req = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = Some("en"),
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = None,
+      representativeEmailAddress = None,
+      representativePhoneNumber  = None,
+      bankAccountOwnerName       = None,
+      bankAccountOwnerType       = None,
+      ibanCode                   = None,
+      bicCode                    = None,
+      bankAccountCurrencyCode    = None,
+      businessActivityCode2      = None,
+      businessActivityCode3      = None,
+      cipherText                 = None,
+      encryptionStatus           = None,
+      updateSequenceNumber       = 30
+    )
+
+    val cs1 = mock(classOf[CallableStatement])
+    val cs2 = mock(classOf[CallableStatement])
+
+    when(mockConnection.prepareCall(any())).thenReturn(cs1, cs2)
+    when(cs1.getInt("p_update_seq_number")).thenReturn(31)
+    when(cs2.getInt("p_update_seq_number")).thenReturn(32)
+
+    val result = repository.updateApplicationDetails(req).futureValue
+
+    result shouldBe 32
+    verify(cs1).setInt("p_update_seq_number", 30)
+    verify(cs2).setInt("p_update_seq_number", 31)
+    verify(cs2).setString("p_application_language", "en")
+
+    val inOrderVerifier = mockInOrder(mockConnection)
+    inOrderVerifier
+      .verify(mockConnection)
+      .prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
+    inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationLanguage(?, ?, ?)}")
+    verify(mockConnection).commit()
+  }
+
+  "updateApplicationDetails" should "set mandatory params and pass null for absent optional fields" in {
+    val req = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = None,
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = None,
+      representativeEmailAddress = None,
+      representativePhoneNumber  = None,
+      bankAccountOwnerName       = None,
+      bankAccountOwnerType       = None,
+      ibanCode                   = None,
+      bicCode                    = None,
+      bankAccountCurrencyCode    = None,
+      businessActivityCode2      = None,
+      businessActivityCode3      = None,
+      cipherText                 = None,
+      encryptionStatus           = None,
+      updateSequenceNumber       = 30
+    )
+
+    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(31)
+
+    repository.updateApplicationDetails(req).futureValue
+
+    verify(mockCallableStatement).setLong("p_application_id", 133L)
+    verify(mockCallableStatement).setString("p_refunding_country_code", "LV")
+    verify(mockCallableStatement).setString("p_applicant_email_address", "test@hotmail.com")
+    verify(mockCallableStatement).setString("p_applicant_telephone_num", "01952233299")
+    verify(mockCallableStatement).setString("p_iban_code", null)
+    verify(mockCallableStatement).setString("p_bic_code", null)
+    verify(mockCallableStatement).setString("p_cipher_text", null)
+  }
+
+  "updateApplicationDetails" should "rollback the transaction and propagate exception when the language SP fails" in {
+    val req = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = Some("en"),
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = None,
+      representativeEmailAddress = None,
+      representativePhoneNumber  = None,
+      bankAccountOwnerName       = None,
+      bankAccountOwnerType       = None,
+      ibanCode                   = None,
+      bicCode                    = None,
+      bankAccountCurrencyCode    = None,
+      businessActivityCode2      = None,
+      businessActivityCode3      = None,
+      cipherText                 = None,
+      encryptionStatus           = None,
+      updateSequenceNumber       = 30
+    )
+
+    val cs1 = mock(classOf[CallableStatement])
+    val cs2 = mock(classOf[CallableStatement])
+
+    when(mockConnection.prepareCall(any())).thenReturn(cs1, cs2)
+    when(cs1.getInt("p_update_seq_number")).thenReturn(31)
+    when(cs2.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+    val thrown = intercept[Exception] {
+      repository.updateApplicationDetails(req).futureValue
+    }
+
+    thrown.getMessage should include("SP failure")
+
+    verify(mockConnection).rollback()
+    verify(mockConnection, never()).commit()
+  }
+
 }

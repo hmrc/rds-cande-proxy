@@ -273,3 +273,40 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       result.getMessage should include("bang")
     }
   }
+
+  "EuVatService.updateApplicationDetails" should {
+    val req = UpdateApplicationDetailsRequest(
+      applicationId              = 133,
+      applicationLanguage        = Some("en"),
+      refundingCountry           = "LV",
+      periodStartDate            = LocalDateTime.of(2011, 6, 1, 0, 0),
+      periodEndDate              = LocalDateTime.of(2011, 10, 31, 23, 59, 59),
+      applicantEmailAddress      = "test@hotmail.com",
+      applicantPhoneNumber       = Some("01952233299"),
+      representativeCountry      = None,
+      representativeEmailAddress = None,
+      representativePhoneNumber  = None,
+      bankAccountOwnerName       = None,
+      bankAccountOwnerType       = None,
+      ibanCode                   = None,
+      bicCode                    = None,
+      bankAccountCurrencyCode    = None,
+      businessActivityCode2      = None,
+      businessActivityCode3      = None,
+      cipherText                 = None,
+      encryptionStatus           = None,
+      updateSequenceNumber       = 30
+    )
+
+    "succeed" in {
+      when(mockConnector.updateApplicationDetails(any())).thenReturn(Future.successful(32))
+      val result = service.updateApplicationDetails(req).futureValue
+      result shouldBe UpdateApplicationDetailsResponse(32)
+    }
+
+    "fail" in {
+      when(mockConnector.updateApplicationDetails(any())).thenReturn(Future.failed(new Exception("bang")))
+      val result = intercept[Exception](service.updateApplicationDetails(req).futureValue)
+      result.getMessage should include("bang")
+    }
+  }
