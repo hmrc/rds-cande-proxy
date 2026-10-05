@@ -406,7 +406,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           storedProcedure.execute()
 
           val totalItems = storedProcedure.getInt("p_total_items")
-          val totalDeductibleVat = storedProcedure.getBigDecimal("p_total_deductible_vat")
+          val totalDeductibleVat: BigDecimal = storedProcedure.getBigDecimal("p_total_deductible_vat")
           val rs = storedProcedure.getObject("p_purch_and_imp_list").asInstanceOf[ResultSet]
 
           val purchaseImports: List[PurchaseImport] = Using.resource(rs) { cursor =>
@@ -422,7 +422,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                   currencyCode                = cursor.getString("currency_code"),
                   taxableAmount               = cursor.getBigDecimal("taxable_amount"),
                   vatAmount                   = cursor.getBigDecimal("vat_amount"),
-                  deductibleVatAmount         = cursor.getBigDecimal("deductible_vat_amount")
+                  deductibleVatAmount         = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0))
                 )
               )
               .toList
