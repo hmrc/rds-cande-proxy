@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
@@ -401,6 +401,41 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
         contentAsString(result) should include("Failed to retrieve purchase import list")
+      }
+    }
+
+    "deleteApplication" - {
+      "return 200 when service deletes the application" in new SetUp {
+        when(mockEuVatService.deleteApplication(any())).thenReturn(Future.successful(()))
+
+        val json: JsValue = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteApplication()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)          shouldBe OK
+        contentAsString(result) shouldBe ""
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.deleteApplication()(fakeRequest.withMethod("DELETE"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.deleteApplication(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val json: JsValue = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteApplication()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to delete refund application")
       }
     }
 

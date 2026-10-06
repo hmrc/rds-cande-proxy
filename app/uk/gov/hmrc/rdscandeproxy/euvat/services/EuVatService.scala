@@ -44,6 +44,9 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getSupplierTaxIdentifierDuplicateCount(request: SupplierTaxIdentifierCountRequest): Future[Int] =
     euvatCandeRepository.getSupplierTaxIdentifierDuplicateCount(request)
 
+  def deleteApplication(request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.DeleteApplicationRequest): Future[Unit] =
+    euvatCandeRepository.deleteApplication(request)
+
   def updatePurchaseDetails(request: UpdatePurchaseDetailsRequest): Future[UpdatePurchaseDetailsResponse] =
     euvatCandeRepository
       .updatePurchaseDetails(request)

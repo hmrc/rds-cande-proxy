@@ -161,6 +161,19 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  def deleteApplication(request: uk.gov.hmrc.rdscandeproxy.euvat.models.requests.DeleteApplicationRequest): Future[Unit] = {
+    logger.info(s"Calling stored procedure deleteApplication for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deleteApplication(?,?)}")) { storedProcedure =>
+          storedProcedure.setInt("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
+          storedProcedure.execute()
+        }
+      }
+    }
+  }
+
   def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] = {
     logger.info(
       s"Calling stored procedure getPurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}"

@@ -593,4 +593,27 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "deleteApplication" should {
+    "call the deleteApplication stored procedure with correct params" in {
+      val req = DeleteApplicationRequest(applicationId = 555, updateSequenceNumber = 2)
+
+      await(repository.deleteApplication(req))
+
+      verify(mockConnection).prepareCall(any())
+      verify(mockCallableStatement).setInt("p_application_id", 555)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 2)
+      verify(mockCallableStatement).execute()
+    }
+
+    "propagate exception when stored procedure fails" in {
+      val req = DeleteApplicationRequest(applicationId = 777, updateSequenceNumber = 3)
+
+      when(mockCallableStatement.execute()).thenThrow(new RuntimeException("SP failure"))
+
+      intercept[RuntimeException] {
+        await(repository.deleteApplication(req))
+      }
+    }
+  }
+
 }
