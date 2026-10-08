@@ -108,11 +108,18 @@ class UpdateApplicationDetailsRequestSpec extends AnyWordSpec with Matchers {
       )
     }
 
-    Seq("applicationId", "refundingCountry", "periodStartDate", "periodEndDate", "applicantEmailAddress", "updateSequenceNumber")
-      .foreach { field =>
-        s"fail to deserialize when $field is missing" in {
-          (mandatoryOnlyJson - field).validate[UpdateApplicationDetailsRequest].isError shouldBe true
-        }
+    Seq(
+      "applicationId",
+      "applicationLanguage",
+      "refundingCountry",
+      "periodStartDate",
+      "periodEndDate",
+      "applicantEmailAddress",
+      "updateSequenceNumber"
+    ).foreach { field =>
+      s"fail to deserialize when $field is missing" in {
+        (mandatoryOnlyJson - field).validate[UpdateApplicationDetailsRequest].isError shouldBe true
       }
+    }
   }
 }
