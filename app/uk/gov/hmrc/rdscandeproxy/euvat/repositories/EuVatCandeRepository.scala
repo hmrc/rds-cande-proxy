@@ -504,11 +504,10 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   def updateApplicationDetails(request: UpdateApplicationDetailsRequest): Future[Int] =
     Future {
       db.withTransaction { connection =>
-        val seqAfterDetails = callUpdateApplicationDetails(connection, request, request.updateSequenceNumber)
+        val seqAfterLanguage =
+          callUpdateApplicationLanguage(connection, request.applicationId, request.applicationLanguage, request.updateSequenceNumber)
 
-        request.applicationLanguage.fold(seqAfterDetails) { language =>
-          callUpdateApplicationLanguage(connection, request.applicationId, language, seqAfterDetails)
-        }
+        callUpdateApplicationDetails(connection, request, seqAfterLanguage)
       }
     }
 }
