@@ -149,6 +149,29 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result.getMessage should include("bang")
   }
 
+  "EuVatService.addImport" should {
+    val importRequest: AddImportRequest = AddImportRequest(
+      applicationId            = 123456,
+      goodsDescriptionCategory = "3",
+      goodsDescriptionText     = Some("Electronics"),
+      updateSequenceNumber     = 1
+    )
+
+    val importResponse: AddImportResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+    "succeed" when:
+      "adding an import to the database" in:
+        when(mockConnector.addImportation(any())).thenReturn(Future.successful(importResponse))
+        val result = service.addImport(importRequest).futureValue
+        result shouldBe importResponse
+
+    "fail" when:
+      "saving to the database" in:
+        when(mockConnector.addImportation(any())).thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.addImport(importRequest).futureValue)
+        result.getMessage should include("bang")
+  }
+
   "EuVatService.getPurchaseDetails" should {
     val detailsRequest: GetPurchaseDetailsRequest = GetPurchaseDetailsRequest(applicationId = 123456, itemNumber = 4)
 

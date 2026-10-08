@@ -153,6 +153,55 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "add import" - {
+      "return 200 and a successful response when DB returns records" in new SetUp {
+        val importRequest = AddImportRequest(
+          applicationId            = 123456,
+          goodsDescriptionCategory = "3",
+          goodsDescriptionText     = Some("Electronics"),
+          updateSequenceNumber     = 1
+        )
+
+        val importResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
+
+        when(mockEuVatService.addImport(any())).thenReturn(Future.successful(importResponse))
+
+        val result: Future[Result] = controller.addImport()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(importRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(importResponse)
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.addImport()(fakeRequest.withMethod("POST"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 and log error when DB call fails" in new SetUp {
+        val exception = new RuntimeException("DB error")
+        when(mockEuVatService.addImport(any())).thenReturn(Future.failed(exception))
+
+        val importRequest = AddImportRequest(
+          applicationId            = 123456,
+          goodsDescriptionCategory = "3",
+          goodsDescriptionText     = Some("Electronics"),
+          updateSequenceNumber     = 1
+        )
+
+        val result: Future[Result] = controller.addImport()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(importRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to add import")
+      }
+    }
+
     "getPurchaseDetails" - {
       "return 200 and the purchase details when the purchase record exists" in new SetUp {
         when(mockEuVatService.getPurchaseDetails(any()))

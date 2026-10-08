@@ -110,6 +110,23 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def addImport: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[AddImportRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for AddImportRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(importRequest) =>
+          euVatService
+            .addImport(importRequest)
+            .map(response => Ok(Json.toJson(response)))
+            .recover { case ex: Exception =>
+              logger.error("Error while adding the import", ex)
+              InternalServerError("Failed to add import")
+            }
+      }
+    }
+
   def getPurchaseDetails: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[GetPurchaseDetailsRequest]) match {
