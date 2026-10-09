@@ -447,7 +447,6 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-
   def deletePurchase(request: DeletePurchaseRequest): Future[Int] = {
     logger.info(s"Calling stored procedure deletePurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}")
     Future {

@@ -616,31 +616,33 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
-  "deletePurchase" should "call the deletePurchaseDetails SP and return the new update sequence number" in {
-    val req = DeletePurchaseRequest(applicationId = 404, itemNumber = 4, updateSequenceNumber = 1)
+  "deletePurchase" should {
+    "call the deletePurchaseDetails SP and return the new update sequence number" in {
+      val req = DeletePurchaseRequest(applicationId = 404, itemNumber = 4, updateSequenceNumber = 1)
 
-    when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
 
-    val result = repository.deletePurchase(req).futureValue
+      val result = repository.deletePurchase(req).futureValue
 
-    result shouldBe 2
-    verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deletePurchaseDetails(?, ?, ?)}")
-    verify(mockCallableStatement).setLong("p_application_id", 404L)
-    verify(mockCallableStatement).setInt("p_item_number", 4)
-    verify(mockCallableStatement).setInt("p_update_seq_number", 1)
-    verify(mockCallableStatement).execute()
-  }
-
-  "deletePurchase" should "propagate exception when stored procedure fails" in {
-    val req = DeletePurchaseRequest(applicationId = 404, itemNumber = 99, updateSequenceNumber = 1)
-
-    when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
-
-    val thrown = intercept[Exception] {
-      repository.deletePurchase(req).futureValue
+      result shouldBe 2
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deletePurchaseDetails(?, ?, ?)}")
+      verify(mockCallableStatement).setLong("p_application_id", 404L)
+      verify(mockCallableStatement).setInt("p_item_number", 4)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
+      verify(mockCallableStatement).execute()
     }
 
-    thrown.getMessage should include("SP failure")
+    "propagate exception when stored procedure fails" in {
+      val req = DeletePurchaseRequest(applicationId = 404, itemNumber = 99, updateSequenceNumber = 1)
+
+      when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+      val thrown = intercept[Exception] {
+        repository.deletePurchase(req).futureValue
+      }
+
+      thrown.getMessage should include("SP failure")
+    }
   }
 
 }
