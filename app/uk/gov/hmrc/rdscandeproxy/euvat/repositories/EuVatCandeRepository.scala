@@ -447,4 +447,66 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  private def callUpdateApplicationDetails(
+    connection: Connection,
+    request: UpdateApplicationDetailsRequest,
+    currentSeq: Int
+  ): Int = {
+    logger.info(s"Calling stored procedure updateApplicationDetails for applicationId: ${request.applicationId}")
+    Using.resource(
+      connection.prepareCall(
+        "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}"
+      )
+    ) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", request.applicationId)
+      storedProcedure.setString("p_refunding_country_code", request.refundingCountry)
+      storedProcedure.setTimestamp("p_period_start_date", java.sql.Timestamp.valueOf(request.periodStartDate))
+      storedProcedure.setTimestamp("p_period_end_date", java.sql.Timestamp.valueOf(request.periodEndDate))
+      storedProcedure.setString("p_applicant_email_address", request.applicantEmailAddress)
+      storedProcedure.setString("p_applicant_telephone_num", request.applicantPhoneNumber.orNull)
+      storedProcedure.setString("p_representative_country", request.representativeCountry.orNull)
+      storedProcedure.setString("p_representative_email_address", request.representativeEmailAddress.orNull)
+      storedProcedure.setString("p_representative_telephone_num", request.representativePhoneNumber.orNull)
+      storedProcedure.setString("p_bank_account_owner_name", request.bankAccountOwnerName.orNull)
+      storedProcedure.setString("p_bank_account_owner_type", request.bankAccountOwnerType.orNull)
+      storedProcedure.setString("p_iban_code", request.ibanCode.orNull)
+      storedProcedure.setString("p_bic_code", request.bicCode.orNull)
+      storedProcedure.setString("p_bank_account_currency_code", request.bankAccountCurrencyCode.orNull)
+      storedProcedure.setString("p_business_activity_code2", request.businessActivityCode2.orNull)
+      storedProcedure.setString("p_business_activity_code3", request.businessActivityCode3.orNull)
+      storedProcedure.setString("p_cipher_text", request.cipherText.orNull)
+      storedProcedure.setString("p_encryption_status", request.encryptionStatus.orNull)
+      storedProcedure.setInt("p_update_seq_number", currentSeq)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+  }
+
+  private def callUpdateApplicationLanguage(
+    connection: Connection,
+    applicationId: Long,
+    applicationLanguage: String,
+    currentSeq: Int
+  ): Int = {
+    logger.info(s"Calling stored procedure updateApplicationLanguage for applicationId: $applicationId")
+    Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateApplicationLanguage(?, ?, ?)}")) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", applicationId)
+      storedProcedure.setString("p_application_language", applicationLanguage)
+      storedProcedure.setInt("p_update_seq_number", currentSeq)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+  }
+
+  def updateApplicationDetails(request: UpdateApplicationDetailsRequest): Future[Int] =
+    Future {
+      db.withTransaction { connection =>
+        val seqAfterLanguage =
+          callUpdateApplicationLanguage(connection, request.applicationId, request.applicationLanguage, request.updateSequenceNumber)
+
+        callUpdateApplicationDetails(connection, request, seqAfterLanguage)
+      }
+    }
 }
