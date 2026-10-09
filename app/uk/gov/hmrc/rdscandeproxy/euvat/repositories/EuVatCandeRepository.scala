@@ -447,7 +447,6 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-
   private def callUpdateApplicationDetails(
     connection: Connection,
     request: UpdateApplicationDetailsRequest,
