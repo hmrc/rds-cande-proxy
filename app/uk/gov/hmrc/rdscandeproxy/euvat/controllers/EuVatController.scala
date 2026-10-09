@@ -120,12 +120,9 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
           euVatService
             .getPurchaseDetails(detailsRequest)
             .map {
-              case Some(response) =>
-                Ok(Json.toJson(response))
+              case Some(response) => Ok(Json.toJson(response))
               case None =>
-                logger.error(
-                  s"No purchase record for applicationId ${detailsRequest.applicationId} itemNumber ${detailsRequest.itemNumber}"
-                )
+                logger.error(s"No purchase record for applicationId ${detailsRequest.applicationId} itemNumber ${detailsRequest.itemNumber}")
                 InternalServerError("Failed to retrieve purchase details")
             }
             .recover { case ex: Exception =>
@@ -191,6 +188,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             .recover { case ex: Exception =>
               logger.error("Error while updating purchase details", ex)
               InternalServerError("Failed to update purchase details")
+            }
+      }
+    }
+
+  def getPurchaseImportList: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[PurchaseImportListRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for PurchaseImportListRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .getPurchaseImportList(req)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving purchase import list", ex)
+              InternalServerError("Failed to retrieve purchase import list")
             }
       }
     }

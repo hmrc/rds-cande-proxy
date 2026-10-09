@@ -22,10 +22,11 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.should.Matchers.{should, shouldBe}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
+import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
@@ -285,7 +286,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
     "updatePurchaseDetails" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
-        val req = UpdatePurchaseDetailsRequest(
+        val req: UpdatePurchaseDetailsRequest = UpdatePurchaseDetailsRequest(
           applicationId               = 404,
           itemNumber                  = 4,
           goodsDescriptionCategory    = "10",
@@ -329,7 +330,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       "return 500 and log error when DB call fails" in new SetUp {
         val exception = new RuntimeException("DB error")
         when(mockEuVatService.updatePurchaseDetails(any())).thenReturn(Future.failed(exception))
-        val req = UpdatePurchaseDetailsRequest(
+        val req: UpdatePurchaseDetailsRequest = UpdatePurchaseDetailsRequest(
           applicationId               = 404,
           itemNumber                  = 4,
           goodsDescriptionCategory    = "10",
@@ -360,11 +361,54 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getPurchaseImportList" - {
+      val purchaseImport = PurchaseImport(123, "2", Some("2.3"), "EU", BigDecimal(300), BigDecimal(200), BigDecimal(100), "P")
+      "return 200 with JSON when service returns count" in new SetUp {
+        when(mockEuVatService.getPurchaseImportList(any())).thenReturn(Future.successful(PurchaseImportListResponse(List(purchaseImport), 1, 100)))
+
+        val json: JsObject = Json.obj(
+          "applicationId" -> 133,
+          "orderBy"       -> 4
+        )
+
+        val result: Future[Result] = controller.getPurchaseImportList()(
+          fakeRequest.withMethod("POST").withJsonBody(json)
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(PurchaseImportListResponse(List(purchaseImport), 1, 100))
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getPurchaseImportList()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getPurchaseImportList(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val json: JsObject = Json.obj(
+          "applicationId" -> 133
+        )
+
+        val result: Future[Result] = controller.getPurchaseImportList()(
+          fakeRequest.withMethod("POST").withJsonBody(json)
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve purchase import list")
+      }
+    }
+
     "deleteApplication" - {
       "return 200 when service deletes the application" in new SetUp {
         when(mockEuVatService.deleteApplication(any())).thenReturn(Future.successful(()))
 
-        val json = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+        val json: JsValue = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
 
         val result: Future[Result] = controller.deleteApplication()(
           fakeRequest.withMethod("DELETE").withJsonBody(json)
@@ -384,7 +428,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       "return 500 when service throws exception" in new SetUp {
         when(mockEuVatService.deleteApplication(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
 
-        val json = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
+        val json: JsValue = Json.toJson(DeleteApplicationRequest(applicationId = 123, updateSequenceNumber = 1))
 
         val result: Future[Result] = controller.deleteApplication()(
           fakeRequest.withMethod("DELETE").withJsonBody(json)

@@ -22,6 +22,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
@@ -218,7 +219,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   }
 
   "EuVatService.getSupplierTaxIdentifierDuplicateCount" should {
-    val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.SupplierTaxIdentifierCountRequest(
+    val req = SupplierTaxIdentifierCountRequest(
       applicationId = 133,
       itemNumber    = 4,
       taxIdentifier = "500000881",
@@ -270,6 +271,23 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     "fail" in {
       when(mockConnector.updatePurchaseDetails(any())).thenReturn(Future.failed(new Exception("bang")))
       val result = intercept[Exception](service.updatePurchaseDetails(req).futureValue)
+      result.getMessage should include("bang")
+    }
+  }
+
+  "EuVatService.getPurchaseImportList" should {
+    val req = PurchaseImportListRequest(applicationId = 133)
+    val purchaseImport = PurchaseImport(123, "2", Some("2.3"), "EU", BigDecimal(300), BigDecimal(200), BigDecimal(100), "P")
+
+    "succeed" in {
+      when(mockConnector.getPurchaseImportList(any())).thenReturn(Future.successful(PurchaseImportListResponse(List(purchaseImport), 1, 100)))
+      val result = service.getPurchaseImportList(req).futureValue
+      result shouldBe PurchaseImportListResponse(List(purchaseImport), 1, 100)
+    }
+
+    "fail" in {
+      when(mockConnector.getPurchaseImportList(any())).thenReturn(Future.failed(new Exception("bang")))
+      val result = intercept[Exception](service.getPurchaseImportList(req).futureValue)
       result.getMessage should include("bang")
     }
   }

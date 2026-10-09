@@ -19,6 +19,7 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
@@ -105,17 +106,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       db.withConnection { connection =>
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getSupplierTaxIdentifierCount(?, ?, ?, ?, ?)}")) {
           storedProcedure =>
-            // input params
             storedProcedure.setInt("p_application_id", request.applicationId)
             storedProcedure.setInt("p_item_number", request.itemNumber)
             storedProcedure.setString("p_supplier_tax_identifier", request.taxIdentifier)
             storedProcedure.setString("p_invoice_number", request.invoiceNumber)
 
-            // out param
             storedProcedure.registerOutParameter("p_count", OracleTypes.NUMBER)
-
             storedProcedure.execute()
-
             storedProcedure.getInt("p_count")
         }
       }
@@ -152,9 +149,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
             stmt.registerOutParameter("p_application_id", OracleTypes.NUMBER)
             stmt.registerOutParameter("p_application_number", OracleTypes.VARCHAR)
             stmt.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
-
             stmt.execute()
-            logger.info("Data successfully saved in database")
 
             ApplicationResponse(
               stmt.getInt("p_application_id"),
@@ -259,9 +254,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           stmt.setInt("p_update_seq_number", request.updateSequenceNumber)
           stmt.registerOutParameter("p_update_seq_number", java.sql.Types.NUMERIC)
           stmt.registerOutParameter("p_item_number", java.sql.Types.NUMERIC)
-
           stmt.execute()
-          logger.info("Data successfully saved in database")
 
           AddPurchaseResponse(
             stmt.getInt("p_item_number"),
@@ -281,11 +274,8 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           storedProcedure.setInt("p_item_number", request.itemNumber)
           storedProcedure.setString("p_supplier_vat_reg_number", request.vatNumber)
           storedProcedure.setString("p_invoice_number", request.invoiceNumber)
-
           storedProcedure.registerOutParameter("p_count", OracleTypes.NUMBER)
-
           storedProcedure.execute()
-
           SupplierVrnCountResponse(storedProcedure.getInt("p_count"))
         }
       }
@@ -387,6 +377,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   }
 
   def updatePurchaseDetails(request: UpdatePurchaseDetailsRequest): Future[Int] = {
+    logger.info(s"Calling stored procedure updatePurchaseDetails for applicationId: ${request.applicationId}")
     Future {
       db.withTransaction { connection =>
         val updateSequenceAfterCategoryUpdate = updatePurchaseCategory(
@@ -409,4 +400,51 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getPurchaseImportList(request: PurchaseImportListRequest): Future[PurchaseImportListResponse] = {
+    logger.info(s"Calling stored procedure getPurchaseImportList for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL_ADDITIONAL.getAllPurchasesAndImportations(?, ?, ?, ?, ?, ?, ?, ?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_order_by", request.orderBy)
+          storedProcedure.setString("p_sort_order", request.sortOrder)
+          storedProcedure.setInt("p_start_at", request.startAt)
+          storedProcedure.setInt("p_max_number", request.maxNumber.getOrElse(0))
+          storedProcedure.registerOutParameter("p_purch_and_imp_list", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_total_items", OracleTypes.NUMBER)
+          storedProcedure.registerOutParameter("p_total_deductible_vat", OracleTypes.DECIMAL)
+          storedProcedure.execute()
+
+          val totalItems = storedProcedure.getInt("p_total_items")
+          val totalDeductibleVat: BigDecimal = storedProcedure.getBigDecimal("p_total_deductible_vat")
+          val rs = storedProcedure.getObject("p_purch_and_imp_list").asInstanceOf[ResultSet]
+
+          val purchaseImports: List[PurchaseImport] = Using.resource(rs) { cursor =>
+            Iterator
+              .continually(cursor.next())
+              .takeWhile(identity)
+              .map(_ =>
+                PurchaseImport(
+                  itemNumber                  = cursor.getInt("item_number"),
+                  itemType                    = cursor.getString("item_type"),
+                  goodsDescriptionCategory    = cursor.getString("goods_description_category"),
+                  goodsDescriptionSubCategory = Option(cursor.getString("goods_description_subcategory")),
+                  currencyCode                = cursor.getString("currency_code"),
+                  taxableAmount               = cursor.getBigDecimal("taxable_amount"),
+                  vatAmount                   = cursor.getBigDecimal("vat_amount"),
+                  deductibleVatAmount         = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0))
+                )
+              )
+              .toList
+          }
+          PurchaseImportListResponse(purchaseImportList = purchaseImports, totalItems = totalItems, totalVatClaims = totalDeductibleVat)
+
+        }
+      }
+    }
+  }
+
 }
