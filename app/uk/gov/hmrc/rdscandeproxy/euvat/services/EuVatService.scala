@@ -55,4 +55,8 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getPurchaseImportList(request: PurchaseImportListRequest): Future[PurchaseImportListResponse] =
     euvatCandeRepository.getPurchaseImportList(request)
 
+  def deletePurchase(request: DeletePurchaseRequest): Future[DeletePurchaseResponse] =
+    euvatCandeRepository
+      .deletePurchase(request)
+      .map(DeletePurchaseResponse(_))
 }
