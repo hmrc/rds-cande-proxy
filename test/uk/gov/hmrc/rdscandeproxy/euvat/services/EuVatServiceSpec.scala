@@ -194,6 +194,53 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result.getMessage should include("bang")
   }
 
+  "EuVatService.getImportationDetails" should {
+    val importationRequest: GetImportationDetailsRequest = GetImportationDetailsRequest(applicationId = 404, itemNumber = 4)
+
+    val importationResponse: GetImportationDetailsResponse = GetImportationDetailsResponse(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      issuingDate                 = None,
+      supplierName                = None,
+      supplierAddressLine1        = None,
+      supplierAddressLine2        = None,
+      supplierAddressLine3        = None,
+      supplierCountryCode         = None,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubcategory = None,
+      goodsDescriptionText        = None,
+      hasSadReferenceNumber       = None,
+      sadReferenceNumber          = None,
+      referenceInformation        = None,
+      currencyCode                = None,
+      taxableAmount               = None,
+      vatAmount                   = None,
+      deductibleVatAmount         = None,
+      updateSequenceNumber        = 1,
+      periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+    )
+
+    "succeed" when:
+      "retrieving an importation record" in:
+        when(mockConnector.getImportationDetails(any()))
+          .thenReturn(Future.successful(Some(importationResponse)))
+        val result = service.getImportationDetails(importationRequest).futureValue
+        result shouldBe Some(importationResponse)
+
+      "no importation record exists" in:
+        when(mockConnector.getImportationDetails(any()))
+          .thenReturn(Future.successful(None))
+        val result = service.getImportationDetails(importationRequest).futureValue
+        result shouldBe None
+
+    "fail" when:
+      "reading from the database" in:
+        when(mockConnector.getImportationDetails(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.getImportationDetails(importationRequest).futureValue)
+        result.getMessage should include("bang")
+  }
+
   "EuVatService.getSupplierVrnCount" should {
     val sampleRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
       applicationId = 133,

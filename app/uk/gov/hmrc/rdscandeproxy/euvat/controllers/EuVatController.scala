@@ -132,6 +132,22 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getImportationDetails(applicationId: Long, itemNumber: Int): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getImportationDetails(GetImportationDetailsRequest(applicationId, itemNumber))
+        .map {
+          case Some(response) => Ok(Json.toJson(response))
+          case None =>
+            logger.error(s"No importation record for applicationId $applicationId itemNumber $itemNumber")
+            InternalServerError("Failed to retrieve importation details")
+        }
+        .recover { case ex: Exception =>
+          logger.error("Error while retrieving the importation details", ex)
+          InternalServerError("Failed to retrieve importation details")
+        }
+    }
+
   def getSupplierVrnCount: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson

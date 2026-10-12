@@ -202,6 +202,39 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getImportationDetails" - {
+      "return 200 and the importation details when the importation record exists" in new SetUp {
+        when(mockEuVatService.getImportationDetails(any()))
+          .thenReturn(Future.successful(Some(importationDetailsResponse)))
+
+        val result: Future[Result] = controller.getImportationDetails(404, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(importationDetailsResponse)
+      }
+
+      "return 500 when no importation record exists for the applicationId and itemNumber" in new SetUp {
+        when(mockEuVatService.getImportationDetails(any()))
+          .thenReturn(Future.successful(None))
+
+        val result: Future[Result] = controller.getImportationDetails(404, 99)(fakeRequest.withMethod("GET"))
+
+        status(result)          shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) shouldBe "Failed to retrieve importation details"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getImportationDetails(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getImportationDetails(404, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve importation details")
+      }
+    }
+
     "getSupplierVrnCount" - {
       "return 200 with JSON when service returns the count" in new SetUp {
         when(mockEuVatService.getSupplierVrnCount(any()))
@@ -538,6 +571,29 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       vatAmount                  = Some(BigDecimal("21.10")),
       deductibleVatAmount        = Some(BigDecimal("21.10")),
       updateSequenceNumber       = 1
+    )
+
+    val importationDetailsResponse: GetImportationDetailsResponse = GetImportationDetailsResponse(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      supplierName                = Some("Finnish International"),
+      supplierAddressLine1        = Some("356 High Street"),
+      supplierAddressLine2        = Some("Rochdale"),
+      supplierAddressLine3        = Some("England"),
+      supplierCountryCode         = Some("GB"),
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubcategory = Some("10.4.1"),
+      goodsDescriptionText        = Some(""),
+      hasSadReferenceNumber       = Some("Y"),
+      sadReferenceNumber          = Some("SAD123456789"),
+      referenceInformation        = Some("Import declaration reference"),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1,
+      periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
     )
 
     val vrnCountRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
