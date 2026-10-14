@@ -412,7 +412,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           storedProcedure.setInt("p_order_by", request.orderBy)
           storedProcedure.setString("p_sort_order", request.sortOrder)
           storedProcedure.setInt("p_start_at", request.startAt)
-          storedProcedure.setInt("p_max_number", request.maxNumber.getOrElse(0))
+          storedProcedure.setInt("p_max_number", request.maxNumber.getOrElse(1))
           storedProcedure.registerOutParameter("p_purch_and_imp_list", OracleTypes.CURSOR)
           storedProcedure.registerOutParameter("p_total_items", OracleTypes.NUMBER)
           storedProcedure.registerOutParameter("p_total_deductible_vat", OracleTypes.DECIMAL)
@@ -433,15 +433,14 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                   goodsDescriptionCategory    = cursor.getString("goods_description_category"),
                   goodsDescriptionSubCategory = Option(cursor.getString("goods_description_subcategory")),
                   currencyCode                = cursor.getString("currency_code"),
-                  taxableAmount               = cursor.getBigDecimal("taxable_amount"),
-                  vatAmount                   = cursor.getBigDecimal("vat_amount"),
+                  taxableAmount               = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
+                  vatAmount                   = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
                   deductibleVatAmount         = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0))
                 )
               )
               .toList
           }
           PurchaseImportListResponse(purchaseImportList = purchaseImports, totalItems = totalItems, totalVatClaims = totalDeductibleVat)
-
         }
       }
     }
