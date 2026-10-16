@@ -283,6 +283,75 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "getImportationDetails" should {
+    "return the importation record with the update sequence number" in {
+      val request = GetImportationDetailsRequest(applicationId = 404, itemNumber = 4)
+
+      when(mockCallableStatement.getObject("p_importation_details", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+      when(mockCallableStatement.getDate("p_period_start_date")).thenReturn(java.sql.Date.valueOf(LocalDateTime.of(2026, 1, 1, 0, 0).toLocalDate))
+
+      when(mockResultSet.next()).thenReturn(true, false)
+      when(mockResultSet.getLong("application_id")).thenReturn(404L)
+      when(mockResultSet.getInt("item_number")).thenReturn(4)
+      when(mockResultSet.getTimestamp("issuing_date")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2026, 5, 14, 0, 0)))
+      when(mockResultSet.getString("supplier_name")).thenReturn("Finnish International")
+      when(mockResultSet.getString("supplier_address_1")).thenReturn("356 High Street")
+      when(mockResultSet.getString("supplier_address_2")).thenReturn("Rochdale")
+      when(mockResultSet.getString("supplier_address_3")).thenReturn("England")
+      when(mockResultSet.getString("supplier_country_code")).thenReturn("GB")
+      when(mockResultSet.getString("goods_description_category")).thenReturn("10")
+      when(mockResultSet.getString("goods_description_subcategory")).thenReturn("10.4.1")
+      when(mockResultSet.getString("goods_description_text")).thenReturn("")
+      when(mockResultSet.getString("has_sad_reference_number")).thenReturn("Y")
+      when(mockResultSet.getString("sad_reference_number")).thenReturn("SAD123456789")
+      when(mockResultSet.getString("reference_information")).thenReturn("Import declaration reference")
+      when(mockResultSet.getString("currency_code")).thenReturn("EUR")
+      when(mockResultSet.getBigDecimal("taxable_amount")).thenReturn(new java.math.BigDecimal("1000"))
+      when(mockResultSet.getBigDecimal("vat_amount")).thenReturn(new java.math.BigDecimal("99"))
+      when(mockResultSet.getBigDecimal("deductible_vat_amount")).thenReturn(new java.math.BigDecimal("40"))
+
+      val result = repository.getImportationDetails(request).futureValue
+
+      result shouldBe Some(
+        GetImportationDetailsResponse(
+          applicationId               = 404,
+          itemNumber                  = 4,
+          issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+          supplierName                = Some("Finnish International"),
+          supplierAddressLine1        = Some("356 High Street"),
+          supplierAddressLine2        = Some("Rochdale"),
+          supplierAddressLine3        = Some("England"),
+          supplierCountryCode         = Some("GB"),
+          goodsDescriptionCategory    = "10",
+          goodsDescriptionSubcategory = Some("10.4.1"),
+          goodsDescriptionText        = Some(""),
+          hasSadReferenceNumber       = Some("Y"),
+          sadReferenceNumber          = Some("SAD123456789"),
+          referenceInformation        = Some("Import declaration reference"),
+          currencyCode                = Some("EUR"),
+          taxableAmount               = Some(BigDecimal("1000")),
+          vatAmount                   = Some(BigDecimal("99")),
+          deductibleVatAmount         = Some(BigDecimal("40")),
+          updateSequenceNumber        = 1,
+          periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+        )
+      )
+    }
+
+    "return None when the cursor holds no importation record" in {
+      val request = GetImportationDetailsRequest(applicationId = 404, itemNumber = 99)
+
+      when(mockCallableStatement.getObject("p_importation_details", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(1)
+      when(mockCallableStatement.getDate("p_period_start_date")).thenReturn(java.sql.Date.valueOf(LocalDateTime.of(2026, 1, 1, 0, 0).toLocalDate))
+      when(mockResultSet.next()).thenReturn(false)
+
+      val result = repository.getImportationDetails(request).futureValue
+      result shouldBe None
+    }
+  }
+
   "getSupplierVrnCount" should {
     "return a SupplierVrnCountResponse with the duplicate count" in {
       val request = SupplierVrnCountRequest(
