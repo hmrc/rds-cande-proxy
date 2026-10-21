@@ -63,4 +63,9 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
       .updateApplicationDetails(request)
       .map(UpdateApplicationDetailsResponse(_))
 
+  def deleteImport(request: DeleteImportRequest): Future[DeleteImportResponse] =
+    euvatCandeRepository
+      .deleteImport(request)
+      .map(DeleteImportResponse(_))
+
 }
