@@ -568,6 +568,74 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "deleteImport" - {
+      "return 200 with the new update sequence number when the delete succeeds" in new SetUp {
+        when(mockEuVatService.deleteImport(any()))
+          .thenReturn(Future.successful(DeleteImportResponse(2)))
+
+        val json: JsValue = Json.toJson(DeleteImportRequest(applicationId = 404L, itemNumber = 4, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteImport()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(DeleteImportResponse(2))
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.deleteImport()(fakeRequest.withMethod("DELETE"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.deleteImport(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val json: JsValue = Json.toJson(DeleteImportRequest(applicationId = 404L, itemNumber = 4, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteImport()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to delete import")
+      }
+    }
+
+    "deletePurchase" - {
+      "return 200 with the new update sequence number" in new SetUp {
+        when(mockEuVatService.deletePurchase(any())).thenReturn(Future.successful(DeletePurchaseResponse(2)))
+
+        val result: Future[Result] = controller.deletePurchase()(
+          fakeRequest.withMethod("DELETE").withJsonBody(Json.toJson(deletePurchaseRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(DeletePurchaseResponse(2))
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.deletePurchase()(fakeRequest.withMethod("DELETE"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when the service fails" in new SetUp {
+        when(mockEuVatService.deletePurchase(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.deletePurchase()(
+          fakeRequest.withMethod("DELETE").withJsonBody(Json.toJson(deletePurchaseRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to delete purchase")
+      }
+    }
   }
 
   private class SetUp {
@@ -723,6 +791,8 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       invoiceNumber = "a444"
     )
     val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
+
+    val deletePurchaseRequest: DeletePurchaseRequest = DeletePurchaseRequest(applicationId = 404, itemNumber = 4, updateSequenceNumber = 1)
 
   }
 
