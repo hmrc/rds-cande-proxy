@@ -7,8 +7,10 @@ POST    /get-purchase-details               uk.gov.hmrc.rdscandeproxy.euvat.cont
 GET     /get-import-details/:applicationId/:itemNumber   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getImportationDetails(applicationId: Long, itemNumber: Int)
 POST    /get-supplier-vrn-count             uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierVrnCount
 POST    /get-supplier-taxIdentifier-count   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierTaxIdentifierCount
+POST    /add-import                         uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addImport
 PUT     /update-purchase-details            uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.updatePurchaseDetails
 POST    /get-purchases-and-imports          uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getPurchaseImportList
 DELETE  /delete-application                 uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteApplication
 PUT     /update-application-details         uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.updateApplicationDetails
 DELETE  /delete-import                      uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteImport
+DELETE  /delete-purchase                    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deletePurchase
