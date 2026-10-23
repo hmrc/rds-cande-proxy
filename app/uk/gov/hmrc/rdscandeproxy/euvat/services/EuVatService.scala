@@ -66,4 +66,7 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
       .updateApplicationDetails(request)
       .map(UpdateApplicationDetailsResponse(_))
 
+  def getSadReferenceCount(request: SadReferenceCountRequest): Future[SadReferenceCountResponse] =
+    euvatCandeRepository.getSadReferenceCount(request)
+
 }
