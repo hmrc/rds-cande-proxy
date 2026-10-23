@@ -606,7 +606,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-
     "deletePurchase" - {
       "return 200 with the new update sequence number" in new SetUp {
         when(mockEuVatService.deletePurchase(any())).thenReturn(Future.successful(DeletePurchaseResponse(2)))
@@ -625,7 +624,6 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         status(result)          shouldBe BAD_REQUEST
         contentAsString(result) shouldBe "Invalid request body"
       }
-
 
       "return 500 when the service fails" in new SetUp {
         when(mockEuVatService.deletePurchase(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
