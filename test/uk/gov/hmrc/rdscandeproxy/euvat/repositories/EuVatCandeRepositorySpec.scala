@@ -872,4 +872,132 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "updateImportationDetails" should {
+    val fullRequest = UpdateImportationDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = Some("10.4.1"),
+      goodsDescriptionText        = Some("office stationery and consumables"),
+      hasSadReferenceNumber       = Some("Y"),
+      sadReferenceNumber          = Some("SAD123456789"),
+      referenceInformation        = Some("Import declaration reference"),
+      supplierName                = Some("Finnish International"),
+      supplierAddressLine1        = Some("356 High Street"),
+      supplierAddressLine2        = Some("Rochdale"),
+      supplierAddressLine3        = Some("England"),
+      supplierCountryCode         = Some("GB"),
+      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1
+    )
+
+    val minimalRequest = UpdateImportationDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = None,
+      goodsDescriptionText        = None,
+      hasSadReferenceNumber       = None,
+      sadReferenceNumber          = None,
+      referenceInformation        = None,
+      supplierName                = None,
+      supplierAddressLine1        = None,
+      supplierAddressLine2        = None,
+      supplierAddressLine3        = None,
+      supplierCountryCode         = None,
+      issuingDate                 = None,
+      currencyCode                = None,
+      taxableAmount               = None,
+      vatAmount                   = None,
+      deductibleVatAmount         = None,
+      updateSequenceNumber        = 1
+    )
+
+    "return the new update sequence number from the stored procedure" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+
+      val result = repository.updateImportationDetails(fullRequest).futureValue
+
+      result shouldBe 2
+    }
+
+    "make a single stored procedure call on a single connection without a transaction" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      verify(mockConnection, times(1)).prepareCall(any())
+      verify(mockConnection).prepareCall("{call ABHINAV_TO_UPDATE.updateAbhinavDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
+      verify(mockCallableStatement).execute()
+      verify(db, never()).withTransaction(any())
+    }
+
+    "set every parameter from the request" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      verify(mockCallableStatement).setLong("p_application_id", 404L)
+      verify(mockCallableStatement).setInt("p_item_number", 4)
+      verify(mockCallableStatement).setString("p_goods_description_category", "10")
+      verify(mockCallableStatement).setString("p_importation_subcategory", "10.4.1")
+      verify(mockCallableStatement).setString("p_goods_description_text", "office stationery and consumables")
+      verify(mockCallableStatement).setString("p_has_sad_reference_number", "Y")
+      verify(mockCallableStatement).setString("p_sad_reference_number", "SAD123456789")
+      verify(mockCallableStatement).setString("p_reference_information", "Import declaration reference")
+      verify(mockCallableStatement).setString("p_supplier_name", "Finnish International")
+      verify(mockCallableStatement).setString("p_supplier_address_1", "356 High Street")
+      verify(mockCallableStatement).setString("p_supplier_address_2", "Rochdale")
+      verify(mockCallableStatement).setString("p_supplier_address_3", "England")
+      verify(mockCallableStatement).setString("p_supplier_country_code", "GB")
+      verify(mockCallableStatement).setDate("p_issuing_date", java.sql.Date.valueOf("2026-05-14"))
+      verify(mockCallableStatement).setString("p_currency_code", "EUR")
+      verify(mockCallableStatement).setBigDecimal("p_taxable_amount", BigDecimal(1000).bigDecimal)
+      verify(mockCallableStatement).setBigDecimal("p_vat_amount", BigDecimal(99).bigDecimal)
+      verify(mockCallableStatement).setBigDecimal("p_deductible_vat_amount", BigDecimal(40).bigDecimal)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
+      verify(mockCallableStatement).registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+    }
+
+    "pass null for every absent optional field" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+
+      repository.updateImportationDetails(minimalRequest).futureValue
+
+      verify(mockCallableStatement).setString("p_goods_description_category", "10")
+      verify(mockCallableStatement).setString("p_importation_subcategory", null)
+      verify(mockCallableStatement).setString("p_goods_description_text", null)
+      verify(mockCallableStatement).setString("p_has_sad_reference_number", null)
+      verify(mockCallableStatement).setString("p_sad_reference_number", null)
+      verify(mockCallableStatement).setString("p_reference_information", null)
+      verify(mockCallableStatement).setString("p_supplier_name", null)
+      verify(mockCallableStatement).setString("p_supplier_address_1", null)
+      verify(mockCallableStatement).setString("p_supplier_address_2", null)
+      verify(mockCallableStatement).setString("p_supplier_address_3", null)
+      verify(mockCallableStatement).setString("p_supplier_country_code", null)
+      verify(mockCallableStatement).setString("p_currency_code", null)
+      verify(mockCallableStatement).setNull("p_issuing_date", java.sql.Types.DATE)
+      verify(mockCallableStatement).setNull("p_taxable_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement).setNull("p_vat_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement).setNull("p_deductible_vat_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement, never()).setDate(any[String](), any[java.sql.Date]())
+      verify(mockCallableStatement, never()).setBigDecimal(any[String](), any[java.math.BigDecimal]())
+    }
+
+    "fail when the stored procedure fails" in {
+      when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+      val thrown = intercept[Exception] {
+        repository.updateImportationDetails(fullRequest).futureValue
+      }
+
+      thrown.getMessage should include("SP failure")
+      verify(mockCallableStatement, never()).getInt("p_update_seq_number")
+    }
+  }
+
 }

@@ -413,3 +413,39 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       result.getMessage should include("bang")
     }
   }
+
+  "EuVatService.updateImportationDetails" should {
+    val req = UpdateImportationDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = Some("10.4.1"),
+      goodsDescriptionText        = Some("office stationery and consumables"),
+      hasSadReferenceNumber       = Some("Y"),
+      sadReferenceNumber          = Some("SAD123456789"),
+      referenceInformation        = Some("Import declaration reference"),
+      supplierName                = Some("Finnish International"),
+      supplierAddressLine1        = Some("356 High Street"),
+      supplierAddressLine2        = Some("Rochdale"),
+      supplierAddressLine3        = Some("England"),
+      supplierCountryCode         = Some("GB"),
+      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1
+    )
+
+    "succeed" in {
+      when(mockConnector.updateImportationDetails(any())).thenReturn(Future.successful(2))
+      val result = service.updateImportationDetails(req).futureValue
+      result shouldBe UpdateImportationDetailsResponse(2)
+    }
+
+    "fail" in {
+      when(mockConnector.updateImportationDetails(any())).thenReturn(Future.failed(new Exception("bang")))
+      val result = intercept[Exception](service.updateImportationDetails(req).futureValue)
+      result.getMessage should include("bang")
+    }
+  }
