@@ -542,49 +542,118 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  private def updateImportationCategory(connection: Connection,
+                                        applicationId: Long,
+                                        itemNumber: Int,
+                                        goodsDescriptionCategory: String,
+                                        updateSeqNumber: Int
+                                       ): Int =
+    Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationCategory(?, ?, ?, ?)}")) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", applicationId)
+      storedProcedure.setInt("p_item_number", itemNumber)
+      storedProcedure.setString("p_goods_description_category", goodsDescriptionCategory)
+      storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+
+  private def updateImportationSubCategory(connection: Connection,
+                                           applicationId: Long,
+                                           itemNumber: Int,
+                                           importationSubcategory: String,
+                                           updateSeqNumber: Int
+                                          ): Int =
+    Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", applicationId)
+      storedProcedure.setInt("p_item_number", itemNumber)
+      storedProcedure.setString("p_importation_subcategory", importationSubcategory)
+      storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+
+  private def updateImportationDescription(connection: Connection,
+                                           applicationId: Long,
+                                           itemNumber: Int,
+                                           importationDescription: String,
+                                           updateSeqNumber: Int
+                                          ): Int =
+    Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", applicationId)
+      storedProcedure.setInt("p_item_number", itemNumber)
+      storedProcedure.setString("p_goods_description_text", importationDescription)
+      storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+
+  private def callUpdateImportationDetails(
+    connection: Connection,
+    request: UpdateImportationDetailsRequest,
+    currentSeq: Int
+  ): Int = {
+    logger.info(s"Calling stored procedure updateImportationDetails for application: ${request.applicationId} item: ${request.itemNumber}")
+    Using.resource(
+      connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
+    ) { storedProcedure =>
+      storedProcedure.setLong("p_application_id", request.applicationId)
+      storedProcedure.setInt("p_item_number", request.itemNumber)
+      storedProcedure.setString("p_has_sad_reference_number", request.hasSadReferenceNumber.orNull)
+      storedProcedure.setString("p_sad_reference_number", request.sadReferenceNumber.orNull)
+      storedProcedure.setString("p_reference_information", request.referenceInformation.orNull)
+      storedProcedure.setString("p_supplier_name", request.supplierName.orNull)
+      storedProcedure.setString("p_supplier_address_1", request.supplierAddressLine1.orNull)
+      storedProcedure.setString("p_supplier_address_2", request.supplierAddressLine2.orNull)
+      storedProcedure.setString("p_supplier_address_3", request.supplierAddressLine3.orNull)
+      storedProcedure.setString("p_supplier_country_code", request.supplierCountryCode.orNull)
+      request.issuingDate match {
+        case Some(dt) => storedProcedure.setDate("p_issuing_date", java.sql.Date.valueOf(dt.toLocalDate))
+        case None     => storedProcedure.setNull("p_issuing_date", java.sql.Types.DATE)
+      }
+      storedProcedure.setString("p_currency_code", request.currencyCode.orNull)
+      request.taxableAmount match {
+        case Some(amount) => storedProcedure.setBigDecimal("p_taxable_amount", amount.bigDecimal)
+        case None         => storedProcedure.setNull("p_taxable_amount", java.sql.Types.NUMERIC)
+      }
+      request.vatAmount match {
+        case Some(amount) => storedProcedure.setBigDecimal("p_vat_amount", amount.bigDecimal)
+        case None         => storedProcedure.setNull("p_vat_amount", java.sql.Types.NUMERIC)
+      }
+      request.deductibleVatAmount match {
+        case Some(amount) => storedProcedure.setBigDecimal("p_deductible_vat_amount", amount.bigDecimal)
+        case None         => storedProcedure.setNull("p_deductible_vat_amount", java.sql.Types.NUMERIC)
+      }
+      storedProcedure.setInt("p_update_seq_number", currentSeq)
+      storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      storedProcedure.execute()
+      storedProcedure.getInt("p_update_seq_number")
+    }
+  }
+
   def updateImportationDetails(request: UpdateImportationDetailsRequest): Future[Int] = {
     logger.info(s"Calling stored procedure updateImportationDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}")
     Future {
-      db.withConnection { connection =>
-        // TODO: ABHINAV_TO_UPDATE.updateAbhinavDetails is a placeholder - replace with the real importation update stored procedure
-        Using.resource(
-          connection.prepareCall("{call ABHINAV_TO_UPDATE.updateAbhinavDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
-        ) { storedProcedure =>
-          storedProcedure.setLong("p_application_id", request.applicationId)
-          storedProcedure.setInt("p_item_number", request.itemNumber)
-          storedProcedure.setString("p_goods_description_category", request.goodsDescriptionCategory)
-          storedProcedure.setString("p_importation_subcategory", request.goodsDescriptionSubCategory.orNull)
-          storedProcedure.setString("p_goods_description_text", request.goodsDescriptionText.orNull)
-          storedProcedure.setString("p_has_sad_reference_number", request.hasSadReferenceNumber.orNull)
-          storedProcedure.setString("p_sad_reference_number", request.sadReferenceNumber.orNull)
-          storedProcedure.setString("p_reference_information", request.referenceInformation.orNull)
-          storedProcedure.setString("p_supplier_name", request.supplierName.orNull)
-          storedProcedure.setString("p_supplier_address_1", request.supplierAddressLine1.orNull)
-          storedProcedure.setString("p_supplier_address_2", request.supplierAddressLine2.orNull)
-          storedProcedure.setString("p_supplier_address_3", request.supplierAddressLine3.orNull)
-          storedProcedure.setString("p_supplier_country_code", request.supplierCountryCode.orNull)
-          request.issuingDate match {
-            case Some(dt) => storedProcedure.setDate("p_issuing_date", java.sql.Date.valueOf(dt.toLocalDate))
-            case None     => storedProcedure.setNull("p_issuing_date", java.sql.Types.DATE)
-          }
-          storedProcedure.setString("p_currency_code", request.currencyCode.orNull)
-          request.taxableAmount match {
-            case Some(amount) => storedProcedure.setBigDecimal("p_taxable_amount", amount.bigDecimal)
-            case None         => storedProcedure.setNull("p_taxable_amount", java.sql.Types.NUMERIC)
-          }
-          request.vatAmount match {
-            case Some(amount) => storedProcedure.setBigDecimal("p_vat_amount", amount.bigDecimal)
-            case None         => storedProcedure.setNull("p_vat_amount", java.sql.Types.NUMERIC)
-          }
-          request.deductibleVatAmount match {
-            case Some(amount) => storedProcedure.setBigDecimal("p_deductible_vat_amount", amount.bigDecimal)
-            case None         => storedProcedure.setNull("p_deductible_vat_amount", java.sql.Types.NUMERIC)
-          }
-          storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
-          storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
-          storedProcedure.execute()
-          storedProcedure.getInt("p_update_seq_number")
+      db.withTransaction { connection =>
+        val updateSequenceAfterCategoryUpdate = updateImportationCategory(
+          connection,
+          request.applicationId,
+          request.itemNumber,
+          request.goodsDescriptionCategory,
+          request.updateSequenceNumber
+        )
+
+        val updateSequenceAfterSubCategoryUpdate = request.goodsDescriptionSubCategory.fold(updateSequenceAfterCategoryUpdate) { sub =>
+          updateImportationSubCategory(connection, request.applicationId, request.itemNumber, sub, updateSequenceAfterCategoryUpdate)
         }
+
+        val updateSequenceAfterDescriptionUpdate = request.goodsDescriptionText.fold(updateSequenceAfterSubCategoryUpdate) { text =>
+          updateImportationDescription(connection, request.applicationId, request.itemNumber, text, updateSequenceAfterSubCategoryUpdate)
+        }
+
+        callUpdateImportationDetails(connection, request, updateSequenceAfterDescriptionUpdate)
       }
     }
   }

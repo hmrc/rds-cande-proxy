@@ -917,32 +917,60 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       updateSequenceNumber        = 1
     )
 
-    "return the new update sequence number from the stored procedure" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+    "return the final update sequence number after chaining all stored procedures" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
 
       val result = repository.updateImportationDetails(fullRequest).futureValue
 
-      result shouldBe 2
+      result shouldBe 5
     }
 
-    "make a single stored procedure call on a single connection without a transaction" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+    "call category, sub category, description then details in order inside one transaction" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
 
       repository.updateImportationDetails(fullRequest).futureValue
 
-      verify(mockConnection, times(1)).prepareCall(any())
-      verify(mockConnection).prepareCall("{call ABHINAV_TO_UPDATE.updateAbhinavDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
-      verify(mockCallableStatement).execute()
-      verify(db, never()).withTransaction(any())
+      val inOrderVerifier = mockInOrder(mockConnection)
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationCategory(?, ?, ?, ?)}")
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      inOrderVerifier
+        .verify(mockConnection)
+        .prepareCall(
+          "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}"
+        )
+      verify(db).withTransaction(any())
+    }
+
+    "thread the update sequence number through each stored procedure" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 2)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 3)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 4)
+    }
+
+    "skip sub category and description calls when they are absent" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3)
+
+      val result = repository.updateImportationDetails(minimalRequest).futureValue
+
+      result shouldBe 3
+      verify(mockConnection, times(2)).prepareCall(any())
+      verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
+      verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
     }
 
     "set every parameter from the request" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
 
       repository.updateImportationDetails(fullRequest).futureValue
 
-      verify(mockCallableStatement).setLong("p_application_id", 404L)
-      verify(mockCallableStatement).setInt("p_item_number", 4)
+      verify(mockCallableStatement, times(4)).setLong("p_application_id", 404L)
+      verify(mockCallableStatement, times(4)).setInt("p_item_number", 4)
       verify(mockCallableStatement).setString("p_goods_description_category", "10")
       verify(mockCallableStatement).setString("p_importation_subcategory", "10.4.1")
       verify(mockCallableStatement).setString("p_goods_description_text", "office stationery and consumables")
@@ -959,18 +987,14 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement).setBigDecimal("p_taxable_amount", BigDecimal(1000).bigDecimal)
       verify(mockCallableStatement).setBigDecimal("p_vat_amount", BigDecimal(99).bigDecimal)
       verify(mockCallableStatement).setBigDecimal("p_deductible_vat_amount", BigDecimal(40).bigDecimal)
-      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
-      verify(mockCallableStatement).registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+      verify(mockCallableStatement, times(4)).registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
     }
 
-    "pass null for every absent optional field" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+    "pass null for every absent optional details field" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3)
 
       repository.updateImportationDetails(minimalRequest).futureValue
 
-      verify(mockCallableStatement).setString("p_goods_description_category", "10")
-      verify(mockCallableStatement).setString("p_importation_subcategory", null)
-      verify(mockCallableStatement).setString("p_goods_description_text", null)
       verify(mockCallableStatement).setString("p_has_sad_reference_number", null)
       verify(mockCallableStatement).setString("p_sad_reference_number", null)
       verify(mockCallableStatement).setString("p_reference_information", null)
@@ -988,7 +1012,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement, never()).setBigDecimal(any[String](), any[java.math.BigDecimal]())
     }
 
-    "fail when the stored procedure fails" in {
+    "fail and stop the chain when a stored procedure fails" in {
       when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
 
       val thrown = intercept[Exception] {
@@ -996,6 +1020,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       }
 
       thrown.getMessage should include("SP failure")
+      verify(mockConnection, times(1)).prepareCall(any())
       verify(mockCallableStatement, never()).getInt("p_update_seq_number")
     }
   }
