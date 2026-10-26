@@ -707,4 +707,21 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getReferenceInformationCount(request: ReferenceInfoCountRequest): Future[ReferenceInfoCountResponse] = {
+    logger.info(
+      s"Calling stored procedure getReferenceInformationCount for applicationId: ${request.applicationId} and itemNumber: ${request.itemNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getReferenceInformationCount(?, ?, ?)}")) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+          storedProcedure.registerOutParameter("p_count", OracleTypes.NUMBER)
+          storedProcedure.execute()
+          ReferenceInfoCountResponse(storedProcedure.getInt("p_count"))
+        }
+      }
+    }
+  }
 }

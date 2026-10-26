@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 
+import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{inOrder as mockInOrder, mock, never, times, verify, when}
 import org.scalatest.BeforeAndAfter
@@ -955,4 +956,35 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       result.duplicateCount shouldBe 0
     }
   }
+  "getReferenceInformationCount" should {
+    val count = 1
+    val itemNumber = 3
+    val applicationId = 123
+    val request = ReferenceInfoCountRequest(applicationId, itemNumber)
+
+    "call the getReferenceInformationCount stored procedure" in {
+      when(mockCallableStatement.getInt("p_count")).thenReturn(count)
+
+      val result = repository.getReferenceInformationCount(request).futureValue
+
+      result shouldBe ReferenceInfoCountResponse(count)
+
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getReferenceInformationCount(?, ?, ?)}")
+      verify(mockCallableStatement).setLong("p_application_id", applicationId)
+      verify(mockCallableStatement).setInt("p_item_number", itemNumber)
+      verify(mockCallableStatement).registerOutParameter("p_count", OracleTypes.NUMBER)
+      verify(mockCallableStatement).execute()
+    }
+
+    "propagate exception when stored procedure fails" in {
+      val errorMessage = "Stored procedure failure"
+
+      when(mockCallableStatement.execute()).thenThrow(new RuntimeException(errorMessage))
+
+      val result = intercept[RuntimeException](repository.getReferenceInformationCount(request).futureValue)
+
+      result.getMessage should include(errorMessage)
+    }
+  }
+
 }

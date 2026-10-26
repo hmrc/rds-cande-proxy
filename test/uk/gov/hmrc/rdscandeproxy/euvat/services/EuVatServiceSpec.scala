@@ -469,4 +469,27 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     }
   }
 
+  "EuVatService.getReferenceInformationCount" should {
+    val request = ReferenceInfoCountRequest(applicationId = 123, itemNumber = 1)
+
+    "return successful response when connector call succeeds" in {
+      val response = ReferenceInfoCountResponse(1)
+
+      when(mockConnector.getReferenceInformationCount(request))
+        .thenReturn(Future.successful(response))
+
+      service.getReferenceInformationCount(request).futureValue shouldBe response
+    }
+
+    "fail when connector call fails" in {
+      val errorMessage = "Connector error"
+
+      when(mockConnector.getReferenceInformationCount(any())).thenReturn(Future.failed(new Exception(errorMessage)))
+
+      val result = service.getReferenceInformationCount(request).failed.futureValue
+
+      result.getMessage should include(errorMessage)
+    }
+  }
+
 }

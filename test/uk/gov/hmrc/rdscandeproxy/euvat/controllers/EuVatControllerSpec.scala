@@ -671,6 +671,41 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getReferenceInformationCount" - {
+      val request = ReferenceInfoCountRequest(applicationId = 123, itemNumber = 1)
+
+      "return 200 when service returns a success" in new SetUp {
+
+        when(mockEuVatService.getReferenceInformationCount(request))
+          .thenReturn(Future.successful(ReferenceInfoCountResponse(1)))
+
+        private val result = controller.getReferenceInformationCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(request))
+        )
+
+        status(result)          shouldBe OK
+        contentAsString(result) shouldBe Json.stringify(Json.toJson(ReferenceInfoCountResponse(1)))
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.getReferenceInformationCount()(fakeRequest.withMethod("POST"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getReferenceInformationCount(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getReferenceInformationCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(request))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to get reference information count")
+      }
+    }
+
   }
 
   private class SetUp {
