@@ -568,6 +568,40 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getSadReferenceCount" - {
+      "return 200 with JSON when service returns the count" in new SetUp {
+        when(mockEuVatService.getSadReferenceCount(any()))
+          .thenReturn(Future.successful(sadReferenceCountResponse))
+
+        val result: Future[Result] = controller.getSadReferenceCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sadReferenceCountRequest))
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(sadReferenceCountResponse)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getSadReferenceCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getSadReferenceCount(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getSadReferenceCount()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sadReferenceCountRequest))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve SAD reference count")
+      }
+    }
+
   }
 
   private class SetUp {
@@ -724,6 +758,12 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     )
     val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
+    val sadReferenceCountRequest: SadReferenceCountRequest = SadReferenceCountRequest(
+      applicationId      = 133,
+      itemNumber         = 4,
+      sadReferenceNumber = "500000881"
+    )
+    val sadReferenceCountResponse: SadReferenceCountResponse = SadReferenceCountResponse(duplicateCount = 1)
   }
 
 }

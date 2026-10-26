@@ -263,4 +263,26 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getSadReferenceCount: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson
+        .flatMap(_.asOpt[SadReferenceCountRequest])
+        .map { sadReferenceCountRequest =>
+          euVatService
+            .getSadReferenceCount(sadReferenceCountRequest)
+            .map { response =>
+              logger.info(s"SAD reference count retrieved for applicationId: ${sadReferenceCountRequest.applicationId}")
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving SAD reference count from oracle database", ex)
+              InternalServerError("Failed to retrieve SAD reference count")
+            }
+        }
+        .getOrElse {
+          logger.warn("Invalid request body for getSadReferenceCount")
+          Future.successful(BadRequest("Invalid request body"))
+        }
+    }
+
 }
