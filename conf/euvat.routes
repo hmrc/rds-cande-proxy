@@ -16,3 +16,4 @@ PUT     /update-importation-details         uk.gov.hmrc.rdscandeproxy.euvat.cont
 DELETE  /delete-purchase                    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deletePurchase
 POST    /get-sad-reference-count            uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSadReferenceCount
 DELETE  /delete-import                      uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteImport
+POST    /get-reference-information-count    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getReferenceInformationCount
