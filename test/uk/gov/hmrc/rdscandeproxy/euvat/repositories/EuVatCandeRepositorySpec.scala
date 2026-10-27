@@ -879,7 +879,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       goodsDescriptionCategory    = "10",
       goodsDescriptionSubCategory = Some("10.4.1"),
       goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some("Y"),
+      hasSadReferenceNumber       = Some(true),
       sadReferenceNumber          = Some("SAD123456789"),
       referenceInformation        = Some("Import declaration reference"),
       supplierName                = Some("Finnish International"),
@@ -974,7 +974,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement).setString("p_goods_description_category", "10")
       verify(mockCallableStatement).setString("p_importation_subcategory", "10.4.1")
       verify(mockCallableStatement).setString("p_goods_description_text", "office stationery and consumables")
-      verify(mockCallableStatement).setString("p_has_sad_reference_number", "Y")
+      verify(mockCallableStatement).setBoolean("p_has_sad_reference_number", true)
       verify(mockCallableStatement).setString("p_sad_reference_number", "SAD123456789")
       verify(mockCallableStatement).setString("p_reference_information", "Import declaration reference")
       verify(mockCallableStatement).setString("p_supplier_name", "Finnish International")
@@ -995,7 +995,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
       repository.updateImportationDetails(minimalRequest).futureValue
 
-      verify(mockCallableStatement).setString("p_has_sad_reference_number", null)
+      verify(mockCallableStatement).setNull("p_has_sad_reference_number", java.sql.Types.BOOLEAN)
       verify(mockCallableStatement).setString("p_sad_reference_number", null)
       verify(mockCallableStatement).setString("p_reference_information", null)
       verify(mockCallableStatement).setString("p_supplier_name", null)

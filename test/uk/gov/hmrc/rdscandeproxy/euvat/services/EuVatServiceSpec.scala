@@ -421,7 +421,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       goodsDescriptionCategory    = "10",
       goodsDescriptionSubCategory = Some("10.4.1"),
       goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some("Y"),
+      hasSadReferenceNumber       = Some(true),
       sadReferenceNumber          = Some("SAD123456789"),
       referenceInformation        = Some("Import declaration reference"),
       supplierName                = Some("Finnish International"),
