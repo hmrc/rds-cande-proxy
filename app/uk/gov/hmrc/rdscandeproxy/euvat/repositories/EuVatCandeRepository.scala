@@ -601,10 +601,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     ) { storedProcedure =>
       storedProcedure.setLong("p_application_id", request.applicationId)
       storedProcedure.setInt("p_item_number", request.itemNumber)
-      request.hasSadReferenceNumber match {
-        case Some(hasSad) => storedProcedure.setBoolean("p_has_sad_reference_number", hasSad)
-        case None         => storedProcedure.setNull("p_has_sad_reference_number", java.sql.Types.BOOLEAN)
-      }
+      storedProcedure.setString("p_has_sad_reference_number", request.hasSadReferenceNumber.map(_.toString).orNull)
       storedProcedure.setString("p_sad_reference_number", request.sadReferenceNumber.orNull)
       storedProcedure.setString("p_reference_information", request.referenceInformation.orNull)
       storedProcedure.setString("p_supplier_name", request.supplierName.orNull)
