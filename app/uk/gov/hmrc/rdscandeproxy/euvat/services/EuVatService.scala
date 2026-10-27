@@ -71,4 +71,12 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
       .updateApplicationDetails(request)
       .map(UpdateApplicationDetailsResponse(_))
 
+  def deletePurchase(request: DeletePurchaseRequest): Future[DeletePurchaseResponse] =
+    euvatCandeRepository
+      .deletePurchase(request)
+      .map(DeletePurchaseResponse(_))
+
+  def getSadReferenceCount(request: SadReferenceCountRequest): Future[SadReferenceCountResponse] =
+    euvatCandeRepository.getSadReferenceCount(request)
+
 }

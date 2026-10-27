@@ -285,4 +285,43 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def deletePurchase: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[DeletePurchaseRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for DeletePurchaseRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .deletePurchase(req)
+            .map(response => Ok(Json.toJson(response)))
+            .recover { case ex: Exception =>
+              logger.error("Error while deleting purchase", ex)
+              InternalServerError("Failed to delete purchase")
+            }
+      }
+    }
+
+  def getSadReferenceCount: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson
+        .flatMap(_.asOpt[SadReferenceCountRequest])
+        .map { sadReferenceCountRequest =>
+          euVatService
+            .getSadReferenceCount(sadReferenceCountRequest)
+            .map { response =>
+              logger.info(s"SAD reference count retrieved for applicationId: ${sadReferenceCountRequest.applicationId}")
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error("Error while retrieving SAD reference count from oracle database", ex)
+              InternalServerError("Failed to retrieve SAD reference count")
+            }
+        }
+        .getOrElse {
+          logger.warn("Invalid request body for getSadReferenceCount")
+          Future.successful(BadRequest("Invalid request body"))
+        }
+    }
+
 }

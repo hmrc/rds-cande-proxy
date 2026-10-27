@@ -768,4 +768,36 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
         callUpdateApplicationDetails(connection, request, seqAfterLanguage)
       }
     }
+
+  def deletePurchase(request: DeletePurchaseRequest): Future[Int] = {
+    logger.info(s"Calling stored procedure deletePurchaseDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deletePurchaseDetails(?, ?, ?)}")) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+          storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
+          storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+          storedProcedure.execute()
+          storedProcedure.getInt("p_update_seq_number")
+        }
+      }
+    }
+  }
+
+  def getSadReferenceCount(request: SadReferenceCountRequest): Future[SadReferenceCountResponse] = {
+    logger.info(s"Calling stored procedure getSadReferenceCount for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getSadReferenceCount(?, ?, ?, ?)}")) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_item_number", request.itemNumber)
+          storedProcedure.setString("p_sad_reference_number", request.sadReferenceNumber)
+          storedProcedure.registerOutParameter("p_count", OracleTypes.NUMBER)
+          storedProcedure.execute()
+          SadReferenceCountResponse(storedProcedure.getInt("p_count"))
+        }
+      }
+    }
+  }
 }
