@@ -901,4 +901,29 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "getSadReferenceCount" should {
+    "return a SadReferenceCountResponse with the duplicate count" in {
+      val request = SadReferenceCountRequest(
+        applicationId      = 133,
+        itemNumber         = 4,
+        sadReferenceNumber = "500000881"
+      )
+
+      when(mockCallableStatement.getInt("p_count")).thenReturn(3)
+      val result = repository.getSadReferenceCount(request).futureValue
+      result.duplicateCount shouldBe 3
+    }
+
+    "return zero when no duplicates exist" in {
+      val request = SadReferenceCountRequest(
+        applicationId      = 133,
+        itemNumber         = 4,
+        sadReferenceNumber = "500000881"
+      )
+
+      when(mockCallableStatement.getInt("p_count")).thenReturn(0)
+      val result = repository.getSadReferenceCount(request).futureValue
+      result.duplicateCount shouldBe 0
+    }
+  }
 }
