@@ -469,13 +469,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   private def updatePurchaseSubCategory(connection: Connection,
                                         applicationId: Long,
                                         itemNumber: Int,
-                                        purchaseSubcategory: String,
+                                        purchaseSubcategory: Option[String],
                                         updateSeqNumber: Int
                                        ): Int = {
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseSubCategory(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
-      storedProcedure.setString("p_purchase_subcategory", purchaseSubcategory)
+      storedProcedure.setString("p_purchase_subcategory", purchaseSubcategory.orNull)
       storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
       storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
       storedProcedure.execute()
@@ -486,13 +486,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   private def updatePurchaseDescription(connection: Connection,
                                         applicationId: Long,
                                         itemNumber: Int,
-                                        purchaseDescription: String,
+                                        purchaseDescription: Option[String],
                                         updateSeqNumber: Int
                                        ): Int = {
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDescription(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
-      storedProcedure.setString("p_goods_description_text", purchaseDescription)
+      storedProcedure.setString("p_goods_description_text", purchaseDescription.orNull)
       storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
       storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
       storedProcedure.execute()
@@ -529,13 +529,21 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           request.updateSequenceNumber
         )
 
-        val updateSequenceAfterSubCategoryUpdate = request.goodsDescriptionSubCategory.fold(updateSequenceAfterCategoryUpdate) { sub =>
-          updatePurchaseSubCategory(connection, request.applicationId, request.itemNumber, sub, updateSequenceAfterCategoryUpdate)
-        }
+        val updateSequenceAfterSubCategoryUpdate = updatePurchaseSubCategory(
+          connection,
+          request.applicationId,
+          request.itemNumber,
+          request.goodsDescriptionSubCategory,
+          updateSequenceAfterCategoryUpdate
+        )
 
-        val updateSequenceAfterDescriptionUpdate = request.goodsDescriptionText.fold(updateSequenceAfterSubCategoryUpdate) { text =>
-          updatePurchaseDescription(connection, request.applicationId, request.itemNumber, text, updateSequenceAfterSubCategoryUpdate)
-        }
+        val updateSequenceAfterDescriptionUpdate = updatePurchaseDescription(
+          connection,
+          request.applicationId,
+          request.itemNumber,
+          request.goodsDescriptionText,
+          updateSequenceAfterSubCategoryUpdate
+        )
 
         callUpdatePurchaseDetails(connection, request, updateSequenceAfterDescriptionUpdate)
       }

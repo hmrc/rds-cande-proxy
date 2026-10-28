@@ -510,7 +510,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       val result = repository.updatePurchaseDetails(req).futureValue
 
       result shouldBe 5
-      verify(mockConnection, times(2)).prepareCall(any())
+      verify(mockConnection, times(4)).prepareCall(any())
     }
 
     "call prepareCall three times when only description present" in {
@@ -541,9 +541,10 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       val result = repository.updatePurchaseDetails(req).futureValue
       result shouldBe 7
 
-      verify(mockConnection, times(3)).prepareCall(any())
+      verify(mockConnection, times(4)).prepareCall(any())
       val inOrderVerifierDesc = mockInOrder(mockConnection)
       inOrderVerifierDesc.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseCategory(?, ?, ?, ?)}")
+      inOrderVerifierDesc.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseSubCategory(?, ?, ?, ?)}")
       inOrderVerifierDesc.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDescription(?, ?, ?, ?)}")
       inOrderVerifierDesc
         .verify(mockConnection)
@@ -578,10 +579,11 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       val result = repository.updatePurchaseDetails(req).futureValue
       result shouldBe 9
 
-      verify(mockConnection, times(3)).prepareCall(any())
+      verify(mockConnection, times(4)).prepareCall(any())
       val inOrderVerifierSub = mockInOrder(mockConnection)
       inOrderVerifierSub.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseCategory(?, ?, ?, ?)}")
       inOrderVerifierSub.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseSubCategory(?, ?, ?, ?)}")
+      inOrderVerifierSub.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDescription(?, ?, ?, ?)}")
       inOrderVerifierSub
         .verify(mockConnection)
         .prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updatePurchaseDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
