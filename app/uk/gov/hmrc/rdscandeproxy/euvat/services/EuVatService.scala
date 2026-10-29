@@ -87,4 +87,7 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getReferenceInformationCount(request: ReferenceInfoCountRequest): Future[ReferenceInfoCountResponse] =
     euvatCandeRepository.getReferenceInformationCount(request)
 
+  def getApplicationDetails(applicationId: Long): Future[ApplicationDetailsResponse] =
+    euvatCandeRepository.getApplicationDetails(applicationId)
+
 }

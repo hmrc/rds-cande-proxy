@@ -17,3 +17,4 @@ DELETE  /delete-purchase                    uk.gov.hmrc.rdscandeproxy.euvat.cont
 POST    /get-sad-reference-count            uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSadReferenceCount
 DELETE  /delete-import                      uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteImport
 POST    /get-reference-information-count    uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getReferenceInformationCount
+GET     /getApplicationDetails/:applicationId uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getApplicationDetails(applicationId: Long)

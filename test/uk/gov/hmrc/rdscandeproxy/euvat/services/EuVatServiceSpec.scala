@@ -527,4 +527,22 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     }
   }
 
+  "EuVatService.getApplicationDetails" should {
+    val applicationId = 133L
+    val response = ApplicationDetailsResponse(List.empty)
+
+    "return application details from the repository" in:
+      when(mockConnector.getApplicationDetails(applicationId))
+        .thenReturn(Future.successful(response))
+
+      service.getApplicationDetails(applicationId).futureValue shouldBe response
+
+    "propagate repository failures" in:
+      when(mockConnector.getApplicationDetails(applicationId))
+        .thenReturn(Future.failed(new Exception("bang")))
+
+      val result = intercept[Exception](service.getApplicationDetails(applicationId).futureValue)
+      result.getMessage should include("bang")
+  }
+
 }
