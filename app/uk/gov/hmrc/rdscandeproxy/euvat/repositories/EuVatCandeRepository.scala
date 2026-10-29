@@ -577,13 +577,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   private def updateImportationDescription(connection: Connection,
                                            applicationId: Long,
                                            itemNumber: Int,
-                                           importationDescription: String,
+                                           importationDescription: Option[String],
                                            updateSeqNumber: Int
                                           ): Int =
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
-      storedProcedure.setString("p_goods_description_text", importationDescription)
+      storedProcedure.setString("p_goods_description_text", importationDescription.orNull)
       storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
       storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
       storedProcedure.execute()
@@ -592,7 +592,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
 
   private def callUpdateImportationDetails(
     connection: Connection,
-    request: UpdateImportationDetailsRequest,
+    request: UpdateImportDetailsRequest,
     currentSeq: Int
   ): Int = {
     logger.info(s"Calling stored procedure updateImportationDetails for application: ${request.applicationId} item: ${request.itemNumber}")
@@ -601,7 +601,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     ) { storedProcedure =>
       storedProcedure.setLong("p_application_id", request.applicationId)
       storedProcedure.setInt("p_item_number", request.itemNumber)
-      storedProcedure.setString("p_has_sad_reference_number", request.hasSadReferenceNumber.map(_.toString).orNull)
+      storedProcedure.setString("p_has_sad_reference_number", request.hasSadReferenceNumber.orNull)
       storedProcedure.setString("p_sad_reference_number", request.sadReferenceNumber.orNull)
       storedProcedure.setString("p_reference_information", request.referenceInformation.orNull)
       storedProcedure.setString("p_supplier_name", request.supplierName.orNull)
@@ -633,7 +633,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-  def updateImportationDetails(request: UpdateImportationDetailsRequest): Future[Int] = {
+  def updateImportationDetails(request: UpdateImportDetailsRequest): Future[Int] = {
     logger.info(s"Calling stored procedure updateImportationDetails for applicationId: ${request.applicationId} itemNumber: ${request.itemNumber}")
     Future {
       db.withTransaction { connection =>
@@ -649,9 +649,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           updateImportationSubCategory(connection, request.applicationId, request.itemNumber, sub, updateSequenceAfterCategoryUpdate)
         }
 
-        val updateSequenceAfterDescriptionUpdate = request.goodsDescriptionText.fold(updateSequenceAfterSubCategoryUpdate) { text =>
-          updateImportationDescription(connection, request.applicationId, request.itemNumber, text, updateSequenceAfterSubCategoryUpdate)
-        }
+        val updateSequenceAfterDescriptionUpdate =
+          updateImportationDescription(connection,
+                                       request.applicationId,
+                                       request.itemNumber,
+                                       request.goodsDescriptionText,
+                                       updateSequenceAfterSubCategoryUpdate
+                                      )
 
         callUpdateImportationDetails(connection, request, updateSequenceAfterDescriptionUpdate)
       }

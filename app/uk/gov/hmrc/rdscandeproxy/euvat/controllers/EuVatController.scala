@@ -227,9 +227,9 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
 
   def updateImportationDetails: Action[AnyContent] =
     authorise.async { implicit request =>
-      request.body.asJson.flatMap(_.asOpt[UpdateImportationDetailsRequest]) match {
+      request.body.asJson.flatMap(_.asOpt[UpdateImportDetailsRequest]) match {
         case None =>
-          logger.warn("Invalid JSON for UpdateImportationDetailsRequest")
+          logger.warn("Invalid JSON for UpdateImportDetailsRequest")
           Future.successful(BadRequest("Invalid request body"))
         case Some(req) if req.applicationId <= 0 || req.itemNumber <= 0 || req.updateSequenceNumber < 0 =>
           logger.warn("Invalid request: applicationId, itemNumber or updateSequenceNumber is not valid")

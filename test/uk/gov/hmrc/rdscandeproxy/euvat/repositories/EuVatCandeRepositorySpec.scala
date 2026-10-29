@@ -873,13 +873,13 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
   }
 
   "updateImportationDetails" should {
-    val fullRequest = UpdateImportationDetailsRequest(
+    val fullRequest = UpdateImportDetailsRequest(
       applicationId               = 404,
       itemNumber                  = 4,
       goodsDescriptionCategory    = "10",
       goodsDescriptionSubCategory = Some("10.4.1"),
       goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some(true),
+      hasSadReferenceNumber       = Some("true"),
       sadReferenceNumber          = Some("SAD123456789"),
       referenceInformation        = Some("Import declaration reference"),
       supplierName                = Some("Finnish International"),
@@ -895,26 +895,11 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       updateSequenceNumber        = 1
     )
 
-    val minimalRequest = UpdateImportationDetailsRequest(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubCategory = None,
-      goodsDescriptionText        = None,
-      hasSadReferenceNumber       = None,
-      sadReferenceNumber          = None,
-      referenceInformation        = None,
-      supplierName                = None,
-      supplierAddressLine1        = None,
-      supplierAddressLine2        = None,
-      supplierAddressLine3        = None,
-      supplierCountryCode         = None,
-      issuingDate                 = None,
-      currencyCode                = None,
-      taxableAmount               = None,
-      vatAmount                   = None,
-      deductibleVatAmount         = None,
-      updateSequenceNumber        = 1
+    val minimalRequest = UpdateImportDetailsRequest(
+      applicationId            = 404,
+      itemNumber               = 4,
+      goodsDescriptionCategory = "10",
+      updateSequenceNumber     = 1
     )
 
     "return the final update sequence number after chaining all stored procedures" in {
@@ -953,15 +938,16 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement).setInt("p_update_seq_number", 4)
     }
 
-    "skip sub category and description calls when they are absent" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3)
+    "skip the sub category call and bind a null description when they are absent" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4)
 
       val result = repository.updateImportationDetails(minimalRequest).futureValue
 
-      result shouldBe 3
-      verify(mockConnection, times(2)).prepareCall(any())
+      result shouldBe 4
+      verify(mockConnection, times(3)).prepareCall(any())
       verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
-      verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      verify(mockCallableStatement).setString("p_goods_description_text", null)
     }
 
     "set every parameter from the request" in {

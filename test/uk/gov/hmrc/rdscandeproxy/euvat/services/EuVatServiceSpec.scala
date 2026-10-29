@@ -415,13 +415,13 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   }
 
   "EuVatService.updateImportationDetails" should {
-    val req = UpdateImportationDetailsRequest(
+    val req = UpdateImportDetailsRequest(
       applicationId               = 404,
       itemNumber                  = 4,
       goodsDescriptionCategory    = "10",
       goodsDescriptionSubCategory = Some("10.4.1"),
       goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some(true),
+      hasSadReferenceNumber       = Some("true"),
       sadReferenceNumber          = Some("SAD123456789"),
       referenceInformation        = Some("Import declaration reference"),
       supplierName                = Some("Finnish International"),
@@ -440,7 +440,7 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     "succeed" in {
       when(mockConnector.updateImportationDetails(any())).thenReturn(Future.successful(2))
       val result = service.updateImportationDetails(req).futureValue
-      result shouldBe UpdateImportationDetailsResponse(2)
+      result shouldBe UpdateImportDetailsResponse(2)
     }
 
     "fail" in {

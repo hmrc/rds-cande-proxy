@@ -20,20 +20,20 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 
-class UpdateImportationDetailsResponseSpec extends AnyWordSpec with Matchers {
+class UpdateImportDetailsResponseSpec extends AnyWordSpec with Matchers {
 
-  "UpdateImportationDetailsResponse JSON format" should {
+  "UpdateImportDetailsResponse JSON format" should {
 
     "serialize to JSON correctly" in {
-      Json.toJson(UpdateImportationDetailsResponse(31)) shouldBe Json.obj("updateSequenceNumber" -> 31)
+      Json.toJson(UpdateImportDetailsResponse(31)) shouldBe Json.obj("updateSequenceNumber" -> 31)
     }
 
     "deserialize from JSON correctly" in {
-      Json.obj("updateSequenceNumber" -> 31).as[UpdateImportationDetailsResponse] shouldBe UpdateImportationDetailsResponse(31)
+      Json.obj("updateSequenceNumber" -> 31).as[UpdateImportDetailsResponse] shouldBe UpdateImportDetailsResponse(31)
     }
 
     "fail to deserialize when updateSequenceNumber is missing" in {
-      Json.obj().validate[UpdateImportationDetailsResponse].isError shouldBe true
+      Json.obj().validate[UpdateImportDetailsResponse].isError shouldBe true
     }
   }
 }

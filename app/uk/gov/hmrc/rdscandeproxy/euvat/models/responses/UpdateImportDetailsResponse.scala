@@ -18,8 +18,8 @@ package uk.gov.hmrc.rdscandeproxy.euvat.models.responses
 
 import play.api.libs.json.{Json, OFormat}
 
-case class UpdateImportationDetailsResponse(updateSequenceNumber: Int)
+case class UpdateImportDetailsResponse(updateSequenceNumber: Int)
 
-object UpdateImportationDetailsResponse {
-  implicit val format: OFormat[UpdateImportationDetailsResponse] = Json.format[UpdateImportationDetailsResponse]
+object UpdateImportDetailsResponse {
+  implicit val format: OFormat[UpdateImportDetailsResponse] = Json.format[UpdateImportDetailsResponse]
 }

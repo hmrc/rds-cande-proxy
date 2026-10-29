@@ -821,13 +821,13 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     )
     val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
-    val updateImportationDetailsRequest: UpdateImportationDetailsRequest = UpdateImportationDetailsRequest(
+    val updateImportationDetailsRequest: UpdateImportDetailsRequest = UpdateImportDetailsRequest(
       applicationId               = 404,
       itemNumber                  = 4,
       goodsDescriptionCategory    = "10",
       goodsDescriptionSubCategory = Some("10.4.1"),
       goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some(true),
+      hasSadReferenceNumber       = Some("true"),
       sadReferenceNumber          = Some("SAD123456789"),
       referenceInformation        = Some("Import declaration reference"),
       supplierName                = Some("Finnish International"),
@@ -842,7 +842,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       deductibleVatAmount         = Some(BigDecimal(40)),
       updateSequenceNumber        = 1
     )
-    val updateImportationDetailsResponse: UpdateImportationDetailsResponse = UpdateImportationDetailsResponse(2)
+    val updateImportationDetailsResponse: UpdateImportDetailsResponse = UpdateImportDetailsResponse(2)
 
   }
 

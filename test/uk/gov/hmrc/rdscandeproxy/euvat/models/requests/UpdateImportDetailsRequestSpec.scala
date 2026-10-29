@@ -22,15 +22,15 @@ import play.api.libs.json.{JsObject, Json}
 
 import java.time.LocalDateTime
 
-class UpdateImportationDetailsRequestSpec extends AnyWordSpec with Matchers {
+class UpdateImportDetailsRequestSpec extends AnyWordSpec with Matchers {
 
-  private val fullRequest = UpdateImportationDetailsRequest(
+  private val fullRequest = UpdateImportDetailsRequest(
     applicationId               = 404,
     itemNumber                  = 4,
     goodsDescriptionCategory    = "10",
     goodsDescriptionSubCategory = Some("10.4.1"),
     goodsDescriptionText        = Some("office stationery and consumables"),
-    hasSadReferenceNumber       = Some(true),
+    hasSadReferenceNumber       = Some("true"),
     sadReferenceNumber          = Some("SAD123456789"),
     referenceInformation        = Some("Import declaration reference"),
     supplierName                = Some("Finnish International"),
@@ -52,7 +52,7 @@ class UpdateImportationDetailsRequestSpec extends AnyWordSpec with Matchers {
     "goodsDescriptionCategory"    -> "10",
     "goodsDescriptionSubCategory" -> "10.4.1",
     "goodsDescriptionText"        -> "office stationery and consumables",
-    "hasSadReferenceNumber"       -> true,
+    "hasSadReferenceNumber"       -> "true",
     "sadReferenceNumber"          -> "SAD123456789",
     "referenceInformation"        -> "Import declaration reference",
     "supplierName"                -> "Finnish International",
@@ -68,14 +68,14 @@ class UpdateImportationDetailsRequestSpec extends AnyWordSpec with Matchers {
     "updateSequenceNumber"        -> 1
   )
 
-  "UpdateImportationDetailsRequest JSON format" should {
+  "UpdateImportDetailsRequest JSON format" should {
 
     "serialize to JSON correctly" in {
       Json.toJson(fullRequest) shouldBe fullJson
     }
 
     "deserialize from JSON correctly" in {
-      fullJson.as[UpdateImportationDetailsRequest] shouldBe fullRequest
+      fullJson.as[UpdateImportDetailsRequest] shouldBe fullRequest
     }
 
     "deserialize with all optional fields absent" in {
@@ -86,41 +86,26 @@ class UpdateImportationDetailsRequestSpec extends AnyWordSpec with Matchers {
         "updateSequenceNumber"     -> 1
       )
 
-      json.as[UpdateImportationDetailsRequest] shouldBe UpdateImportationDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = None,
-        goodsDescriptionText        = None,
-        hasSadReferenceNumber       = None,
-        sadReferenceNumber          = None,
-        referenceInformation        = None,
-        supplierName                = None,
-        supplierAddressLine1        = None,
-        supplierAddressLine2        = None,
-        supplierAddressLine3        = None,
-        supplierCountryCode         = None,
-        issuingDate                 = None,
-        currencyCode                = None,
-        taxableAmount               = None,
-        vatAmount                   = None,
-        deductibleVatAmount         = None,
-        updateSequenceNumber        = 1
+      json.as[UpdateImportDetailsRequest] shouldBe UpdateImportDetailsRequest(
+        applicationId            = 404,
+        itemNumber               = 4,
+        goodsDescriptionCategory = "10",
+        updateSequenceNumber     = 1
       )
     }
 
     "round trip through JSON" in {
-      Json.toJson(fullRequest).as[UpdateImportationDetailsRequest] shouldBe fullRequest
+      Json.toJson(fullRequest).as[UpdateImportDetailsRequest] shouldBe fullRequest
     }
 
     Seq("applicationId", "itemNumber", "goodsDescriptionCategory", "updateSequenceNumber").foreach { field =>
       s"fail to deserialize when mandatory field $field is missing" in {
-        (fullJson - field).validate[UpdateImportationDetailsRequest].isError shouldBe true
+        (fullJson - field).validate[UpdateImportDetailsRequest].isError shouldBe true
       }
     }
 
     "fail to deserialize when applicationId is not a number" in {
-      (fullJson + ("applicationId" -> Json.toJson("abc"))).validate[UpdateImportationDetailsRequest].isError shouldBe true
+      (fullJson + ("applicationId" -> Json.toJson("abc"))).validate[UpdateImportDetailsRequest].isError shouldBe true
     }
   }
 }
