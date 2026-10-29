@@ -938,15 +938,16 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement).setInt("p_update_seq_number", 4)
     }
 
-    "skip the sub category call and bind a null description when they are absent" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4)
+    "still call sub category and description and bind nulls when they are absent" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
 
       val result = repository.updateImportationDetails(minimalRequest).futureValue
 
-      result shouldBe 4
-      verify(mockConnection, times(3)).prepareCall(any())
-      verify(mockConnection, never()).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
+      result shouldBe 5
+      verify(mockConnection, times(4)).prepareCall(any())
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
       verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      verify(mockCallableStatement).setString("p_importation_subcategory", null)
       verify(mockCallableStatement).setString("p_goods_description_text", null)
     }
 
@@ -977,7 +978,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
 
     "pass null for every absent optional details field" in {
-      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
 
       repository.updateImportationDetails(minimalRequest).futureValue
 

@@ -561,13 +561,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   private def updateImportationSubCategory(connection: Connection,
                                            applicationId: Long,
                                            itemNumber: Int,
-                                           importationSubcategory: String,
+                                           importationSubcategory: Option[String],
                                            updateSeqNumber: Int
                                           ): Int =
     Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")) { storedProcedure =>
       storedProcedure.setLong("p_application_id", applicationId)
       storedProcedure.setInt("p_item_number", itemNumber)
-      storedProcedure.setString("p_importation_subcategory", importationSubcategory)
+      storedProcedure.setString("p_importation_subcategory", importationSubcategory.orNull)
       storedProcedure.setInt("p_update_seq_number", updateSeqNumber)
       storedProcedure.registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
       storedProcedure.execute()
@@ -645,9 +645,13 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           request.updateSequenceNumber
         )
 
-        val updateSequenceAfterSubCategoryUpdate = request.goodsDescriptionSubCategory.fold(updateSequenceAfterCategoryUpdate) { sub =>
-          updateImportationSubCategory(connection, request.applicationId, request.itemNumber, sub, updateSequenceAfterCategoryUpdate)
-        }
+        val updateSequenceAfterSubCategoryUpdate =
+          updateImportationSubCategory(connection,
+                                       request.applicationId,
+                                       request.itemNumber,
+                                       request.goodsDescriptionSubCategory,
+                                       updateSequenceAfterCategoryUpdate
+                                      )
 
         val updateSequenceAfterDescriptionUpdate =
           updateImportationDescription(connection,
