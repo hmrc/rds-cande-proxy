@@ -901,6 +901,146 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "updateImportationDetails" should {
+    val fullRequest = UpdateImportDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = Some("10.4.1"),
+      goodsDescriptionText        = Some("office stationery and consumables"),
+      hasSadReferenceNumber       = Some("true"),
+      sadReferenceNumber          = Some("SAD123456789"),
+      referenceInformation        = Some("Import declaration reference"),
+      supplierName                = Some("Finnish International"),
+      supplierAddressLine1        = Some("356 High Street"),
+      supplierAddressLine2        = Some("Rochdale"),
+      supplierAddressLine3        = Some("England"),
+      supplierCountryCode         = Some("GB"),
+      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1
+    )
+
+    val minimalRequest = UpdateImportDetailsRequest(
+      applicationId            = 404,
+      itemNumber               = 4,
+      goodsDescriptionCategory = "10",
+      updateSequenceNumber     = 1
+    )
+
+    "return the final update sequence number after chaining all stored procedures" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      val result = repository.updateImportationDetails(fullRequest).futureValue
+
+      result shouldBe 5
+    }
+
+    "call category, sub category, description then details in order inside one transaction" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      val inOrderVerifier = mockInOrder(mockConnection)
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationCategory(?, ?, ?, ?)}")
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
+      inOrderVerifier.verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      inOrderVerifier
+        .verify(mockConnection)
+        .prepareCall(
+          "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDetails(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}"
+        )
+      verify(db).withTransaction(any())
+    }
+
+    "thread the update sequence number through each stored procedure" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 2)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 3)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 4)
+    }
+
+    "still call sub category and description and bind nulls when they are absent" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      val result = repository.updateImportationDetails(minimalRequest).futureValue
+
+      result shouldBe 5
+      verify(mockConnection, times(4)).prepareCall(any())
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationSubCategory(?, ?, ?, ?)}")
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.updateImportationDescription(?, ?, ?, ?)}")
+      verify(mockCallableStatement).setString("p_importation_subcategory", null)
+      verify(mockCallableStatement).setString("p_goods_description_text", null)
+    }
+
+    "set every parameter from the request" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      repository.updateImportationDetails(fullRequest).futureValue
+
+      verify(mockCallableStatement, times(4)).setLong("p_application_id", 404L)
+      verify(mockCallableStatement, times(4)).setInt("p_item_number", 4)
+      verify(mockCallableStatement).setString("p_goods_description_category", "10")
+      verify(mockCallableStatement).setString("p_importation_subcategory", "10.4.1")
+      verify(mockCallableStatement).setString("p_goods_description_text", "office stationery and consumables")
+      verify(mockCallableStatement).setString("p_has_sad_reference_number", "true")
+      verify(mockCallableStatement).setString("p_sad_reference_number", "SAD123456789")
+      verify(mockCallableStatement).setString("p_reference_information", "Import declaration reference")
+      verify(mockCallableStatement).setString("p_supplier_name", "Finnish International")
+      verify(mockCallableStatement).setString("p_supplier_address_1", "356 High Street")
+      verify(mockCallableStatement).setString("p_supplier_address_2", "Rochdale")
+      verify(mockCallableStatement).setString("p_supplier_address_3", "England")
+      verify(mockCallableStatement).setString("p_supplier_country_code", "GB")
+      verify(mockCallableStatement).setDate("p_issuing_date", java.sql.Date.valueOf("2026-05-14"))
+      verify(mockCallableStatement).setString("p_currency_code", "EUR")
+      verify(mockCallableStatement).setBigDecimal("p_taxable_amount", BigDecimal(1000).bigDecimal)
+      verify(mockCallableStatement).setBigDecimal("p_vat_amount", BigDecimal(99).bigDecimal)
+      verify(mockCallableStatement).setBigDecimal("p_deductible_vat_amount", BigDecimal(40).bigDecimal)
+      verify(mockCallableStatement, times(4)).registerOutParameter("p_update_seq_number", java.sql.Types.INTEGER)
+    }
+
+    "pass null for every absent optional details field" in {
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2, 3, 4, 5)
+
+      repository.updateImportationDetails(minimalRequest).futureValue
+
+      verify(mockCallableStatement).setString("p_has_sad_reference_number", null)
+      verify(mockCallableStatement).setString("p_sad_reference_number", null)
+      verify(mockCallableStatement).setString("p_reference_information", null)
+      verify(mockCallableStatement).setString("p_supplier_name", null)
+      verify(mockCallableStatement).setString("p_supplier_address_1", null)
+      verify(mockCallableStatement).setString("p_supplier_address_2", null)
+      verify(mockCallableStatement).setString("p_supplier_address_3", null)
+      verify(mockCallableStatement).setString("p_supplier_country_code", null)
+      verify(mockCallableStatement).setString("p_currency_code", null)
+      verify(mockCallableStatement).setNull("p_issuing_date", java.sql.Types.DATE)
+      verify(mockCallableStatement).setNull("p_taxable_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement).setNull("p_vat_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement).setNull("p_deductible_vat_amount", java.sql.Types.NUMERIC)
+      verify(mockCallableStatement, never()).setDate(any[String](), any[java.sql.Date]())
+      verify(mockCallableStatement, never()).setBigDecimal(any[String](), any[java.math.BigDecimal]())
+    }
+
+    "fail and stop the chain when a stored procedure fails" in {
+      when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+      val thrown = intercept[Exception] {
+        repository.updateImportationDetails(fullRequest).futureValue
+      }
+
+      thrown.getMessage should include("SP failure")
+      verify(mockConnection, times(1)).prepareCall(any())
+      verify(mockCallableStatement, never()).getInt("p_update_seq_number")
+    }
+  }
+
   "deletePurchase" should {
     "call the deletePurchaseDetails SP and return the new update sequence number" in {
       val req = DeletePurchaseRequest(applicationId = 404, itemNumber = 4, updateSequenceNumber = 1)

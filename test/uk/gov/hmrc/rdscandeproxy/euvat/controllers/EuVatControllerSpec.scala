@@ -568,68 +568,100 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
-    "deletePurchase" - {
-      "return 200 with the new update sequence number" in new SetUp {
-        when(mockEuVatService.deletePurchase(any())).thenReturn(Future.successful(DeletePurchaseResponse(2)))
+    "updateImportationDetails" - {
+      "return 200 with the new update sequence number when the update succeeds" in new SetUp {
+        when(mockEuVatService.updateImportationDetails(any()))
+          .thenReturn(Future.successful(updateImportationDetailsResponse))
 
-        val result: Future[Result] = controller.deletePurchase()(
-          fakeRequest.withMethod("DELETE").withJsonBody(Json.toJson(deletePurchaseRequest))
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateImportationDetailsRequest))
         )
 
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(DeletePurchaseResponse(2))
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(updateImportationDetailsResponse)
+        verify(mockEuVatService).updateImportationDetails(updateImportationDetailsRequest)
+      }
+
+      "return 200 when only the mandatory fields are supplied" in new SetUp {
+        val json: JsObject = Json.obj(
+          "applicationId"            -> 404,
+          "itemNumber"               -> 4,
+          "goodsDescriptionCategory" -> "10",
+          "updateSequenceNumber"     -> 1
+        )
+        when(mockEuVatService.updateImportationDetails(any()))
+          .thenReturn(Future.successful(updateImportationDetailsResponse))
+
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(json)
+        )
+
+        status(result) shouldBe OK
       }
 
       "return 400 when request body is missing" in new SetUp {
-        val result: Future[Result] = controller.deletePurchase()(fakeRequest.withMethod("DELETE"))
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT")
+        )
 
         status(result)          shouldBe BAD_REQUEST
         contentAsString(result) shouldBe "Invalid request body"
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 400 when a mandatory field is missing" in new SetUp {
+        val json: JsObject = Json.toJson(updateImportationDetailsRequest).as[JsObject] - "goodsDescriptionCategory"
+
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(json)
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 400 when applicationId is not valid" in new SetUp {
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateImportationDetailsRequest.copy(applicationId = 0)))
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request: applicationId, itemNumber or updateSequenceNumber"
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 400 when itemNumber is not valid" in new SetUp {
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateImportationDetailsRequest.copy(itemNumber = 0)))
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request: applicationId, itemNumber or updateSequenceNumber"
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 400 when updateSequenceNumber is not valid" in new SetUp {
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateImportationDetailsRequest.copy(updateSequenceNumber = -1)))
+        )
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request: applicationId, itemNumber or updateSequenceNumber"
+        verifyNoInteractions(mockEuVatService)
       }
 
       "return 500 when the service fails" in new SetUp {
-        when(mockEuVatService.deletePurchase(any())).thenReturn(Future.failed(new RuntimeException("DB error")))
-
-        val result: Future[Result] = controller.deletePurchase()(
-          fakeRequest.withMethod("DELETE").withJsonBody(Json.toJson(deletePurchaseRequest))
-        )
-
-        status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to delete purchase")
-      }
-    }
-
-    "getSadReferenceCount" - {
-      "return 200 with JSON when service returns the count" in new SetUp {
-        when(mockEuVatService.getSadReferenceCount(any()))
-          .thenReturn(Future.successful(sadReferenceCountResponse))
-
-        val result: Future[Result] = controller.getSadReferenceCount()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sadReferenceCountRequest))
-        )
-
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(sadReferenceCountResponse)
-      }
-
-      "return 400 when request body is invalid" in new SetUp {
-        val result: Future[Result] = controller.getSadReferenceCount()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
-        )
-
-        status(result) shouldBe BAD_REQUEST
-      }
-
-      "return 500 when service throws exception" in new SetUp {
-        when(mockEuVatService.getSadReferenceCount(any()))
+        when(mockEuVatService.updateImportationDetails(any()))
           .thenReturn(Future.failed(new RuntimeException("DB error")))
 
-        val result: Future[Result] = controller.getSadReferenceCount()(
-          fakeRequest.withMethod("POST").withJsonBody(Json.toJson(sadReferenceCountRequest))
+        val result: Future[Result] = controller.updateImportationDetails()(
+          fakeRequest.withMethod("PUT").withJsonBody(Json.toJson(updateImportationDetailsRequest))
         )
 
         status(result)        shouldBe INTERNAL_SERVER_ERROR
-        contentAsString(result) should include("Failed to retrieve SAD reference count")
+        contentAsString(result) should include("Failed to update importation details")
       }
     }
 
@@ -827,14 +859,29 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     )
     val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
-    val deletePurchaseRequest: DeletePurchaseRequest = DeletePurchaseRequest(applicationId = 404, itemNumber = 4, updateSequenceNumber = 1)
-
-    val sadReferenceCountRequest: SadReferenceCountRequest = SadReferenceCountRequest(
-      applicationId      = 133,
-      itemNumber         = 4,
-      sadReferenceNumber = "500000881"
+    val updateImportationDetailsRequest: UpdateImportDetailsRequest = UpdateImportDetailsRequest(
+      applicationId               = 404,
+      itemNumber                  = 4,
+      goodsDescriptionCategory    = "10",
+      goodsDescriptionSubCategory = Some("10.4.1"),
+      goodsDescriptionText        = Some("office stationery and consumables"),
+      hasSadReferenceNumber       = Some("true"),
+      sadReferenceNumber          = Some("SAD123456789"),
+      referenceInformation        = Some("Import declaration reference"),
+      supplierName                = Some("Finnish International"),
+      supplierAddressLine1        = Some("356 High Street"),
+      supplierAddressLine2        = Some("Rochdale"),
+      supplierAddressLine3        = Some("England"),
+      supplierCountryCode         = Some("GB"),
+      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode                = Some("EUR"),
+      taxableAmount               = Some(BigDecimal(1000)),
+      vatAmount                   = Some(BigDecimal(99)),
+      deductibleVatAmount         = Some(BigDecimal(40)),
+      updateSequenceNumber        = 1
     )
-    val sadReferenceCountResponse: SadReferenceCountResponse = SadReferenceCountResponse(duplicateCount = 1)
+    val updateImportationDetailsResponse: UpdateImportDetailsResponse = UpdateImportDetailsResponse(2)
+
   }
 
 }
