@@ -29,7 +29,12 @@ case class LatestApplication(
   applicationNumber: String,
   applicationStatus: Option[String],
   submissionStatus: Option[String],
-  applicationVersion: LocalDateTime
+  applicationVersion: LocalDateTime,
+  bankAccountOwnerName: Option[String] = None,
+  bankAccountOwnerType: Option[String] = None,
+  ibanCode: Option[String] = None,
+  bicCode: Option[String] = None,
+  bankAccountCurrencyCode: Option[String] = None
 )
 
 object LatestApplication:
@@ -42,5 +47,10 @@ object LatestApplication:
         (__ \ "applicationNumber").format[String] and
         (__ \ "applicationStatus").formatNullable[String] and
         (__ \ "submissionStatus").formatNullable[String] and
-        (__ \ "applicationVersion").format[LocalDateTime]
+        (__ \ "applicationVersion").format[LocalDateTime] and
+        (__ \ "bankAccountOwnerName").formatNullable[String] and
+        (__ \ "bankAccountOwnerType").formatNullable[String] and
+        (__ \ "ibanCode").formatNullable[String] and
+        (__ \ "bicCode").formatNullable[String] and
+        (__ \ "bankAccountCurrencyCode").formatNullable[String]
     )(LatestApplication.apply, o => Tuple.fromProductTyped(o))

@@ -80,14 +80,19 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                   .takeWhile(identity)
                   .map(_ =>
                     LatestApplication(
-                      applicationId        = cursor.getLong("application_id"),
-                      refundingCountryCode = cursor.getString("refunding_country_code"),
-                      periodStartDate      = cursor.getTimestamp("period_start_date").toLocalDateTime,
-                      periodEndDate        = cursor.getTimestamp("period_end_date").toLocalDateTime,
-                      applicationNumber    = cursor.getString("application_number"),
-                      applicationStatus    = Option(cursor.getString("application_status")),
-                      submissionStatus     = Option(cursor.getString("submission_status")),
-                      applicationVersion   = cursor.getTimestamp("application_version").toLocalDateTime
+                      applicationId           = cursor.getLong("application_id"),
+                      refundingCountryCode    = cursor.getString("refunding_country_code"),
+                      periodStartDate         = cursor.getTimestamp("period_start_date").toLocalDateTime,
+                      periodEndDate           = cursor.getTimestamp("period_end_date").toLocalDateTime,
+                      applicationNumber       = cursor.getString("application_number"),
+                      applicationStatus       = Option(cursor.getString("application_status")),
+                      submissionStatus        = Option(cursor.getString("submission_status")),
+                      applicationVersion      = cursor.getTimestamp("application_version").toLocalDateTime,
+                      bankAccountOwnerName    = Option(cursor.getString("bank_account_owner_name")),
+                      bankAccountOwnerType    = Option(cursor.getString("bank_account_owner_type")),
+                      ibanCode                = Option(cursor.getString("iban_code")),
+                      bicCode                 = Option(cursor.getString("bic_code")),
+                      bankAccountCurrencyCode = Option(cursor.getString("bank_account_currency_code"))
                     )
                   )
                   .toList

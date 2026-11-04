@@ -19,10 +19,10 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{inOrder as mockInOrder, mock, never, times, verify, when}
-import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfter, OptionValues}
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
@@ -32,7 +32,7 @@ import java.sql.{CallableStatement, Connection, ResultSet}
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndAfter {
+class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndAfter with OptionValues {
 
   var db: Database = _
   var repository: EuVatCandeRepository = _
@@ -97,12 +97,22 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       when(mockResultSet.getString("application_status")).thenReturn("D")
       when(mockResultSet.getString("submission_status")).thenReturn("S")
       when(mockResultSet.getTimestamp("application_version")).thenReturn(java.sql.Timestamp.valueOf(LocalDateTime.of(2025, 2, 11, 10, 38)))
+      when(mockResultSet.getString("bank_account_owner_name")).thenReturn("John Doe")
+      when(mockResultSet.getString("bank_account_owner_type")).thenReturn("applicant")
+      when(mockResultSet.getString("iban_code")).thenReturn("AB12345678901112131415")
+      when(mockResultSet.getString("bic_code")).thenReturn("ABCDEF1A")
+      when(mockResultSet.getString("bank_account_currency_code")).thenReturn("EUR")
 
       val result = repository.getLatestApplications(request).futureValue
 
-      result.totalApplication                       shouldBe 1
-      result.applications.head.applicationId        shouldBe 133L
-      result.applications.head.refundingCountryCode shouldBe "LV"
+      result.totalApplication                                shouldBe 1
+      result.applications.head.applicationId                 shouldBe 133L
+      result.applications.head.refundingCountryCode          shouldBe "LV"
+      result.applications.head.bankAccountOwnerName.value    shouldBe "John Doe"
+      result.applications.head.bankAccountOwnerType.value    shouldBe "applicant"
+      result.applications.head.ibanCode.value                shouldBe "AB12345678901112131415"
+      result.applications.head.bicCode.value                 shouldBe "ABCDEF1A"
+      result.applications.head.bankAccountCurrencyCode.value shouldBe "EUR"
     }
 
     "return empty list when no applications found" in {
@@ -795,11 +805,11 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         representativeCountry      = None,
         representativeEmailAddress = None,
         representativePhoneNumber  = None,
-        bankAccountOwnerName       = None,
-        bankAccountOwnerType       = None,
-        ibanCode                   = None,
-        bicCode                    = None,
-        bankAccountCurrencyCode    = None,
+        bankAccountOwnerName       = Some("John Doe"),
+        bankAccountOwnerType       = Some("applicant"),
+        ibanCode                   = Some("AB12345678901112131415"),
+        bicCode                    = Some("ABCDEF1A"),
+        bankAccountCurrencyCode    = Some("EUR"),
         businessActivityCode2      = None,
         businessActivityCode3      = None,
         cipherText                 = None,
@@ -817,8 +827,11 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       verify(mockCallableStatement).setString("p_refunding_country_code", "LV")
       verify(mockCallableStatement).setString("p_applicant_email_address", "test@hotmail.com")
       verify(mockCallableStatement).setString("p_applicant_telephone_num", "01952233299")
-      verify(mockCallableStatement).setString("p_iban_code", null)
-      verify(mockCallableStatement).setString("p_bic_code", null)
+      verify(mockCallableStatement).setString("p_bank_account_owner_name", "John Doe")
+      verify(mockCallableStatement).setString("p_bank_account_owner_type", "applicant")
+      verify(mockCallableStatement).setString("p_iban_code", "AB12345678901112131415")
+      verify(mockCallableStatement).setString("p_bic_code", "ABCDEF1A")
+      verify(mockCallableStatement).setString("p_bank_account_currency_code", "EUR")
       verify(mockCallableStatement).setString("p_cipher_text", null)
     }
 
