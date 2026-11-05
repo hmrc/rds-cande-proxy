@@ -71,6 +71,7 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
               InternalServerError("Failed to create refund application")
             }
       }
+
     }
 
   def deleteApplication: Action[AnyContent] =
@@ -89,6 +90,7 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
               InternalServerError("Failed to delete refund application")
             }
       }
+
     }
 
   def addPurchase: Action[AnyContent] =
@@ -342,6 +344,7 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             }
       }
     }
+
   def getReferenceInformationCount: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[ReferenceInfoCountRequest]) match {
@@ -361,4 +364,20 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getApplicationDetails(applicationId: Long): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getApplicationDetails(applicationId)
+        .map(response => Ok(Json.toJson(response)))
+        .recover { case ex: Exception =>
+          logger.error(s"Error while retrieving application $applicationId for submission", ex)
+          InternalServerError(
+            Json.obj(
+              "status"  -> 500,
+              "error"   -> "Internal server error",
+              "message" -> "Database connection issue or server issue"
+            )
+          )
+        }
+    }
 }
