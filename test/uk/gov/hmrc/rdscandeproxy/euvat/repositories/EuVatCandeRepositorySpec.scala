@@ -1096,6 +1096,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       result.duplicateCount shouldBe 0
     }
   }
+
   "getReferenceInformationCount" should {
     val count = 1
     val itemNumber = 3
@@ -1127,4 +1128,54 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "getApplicationDetails" should {
+    "return application details from the stored procedure" in {
+      val periodStart = LocalDateTime.of(2011, 6, 1, 0, 0)
+      val periodEnd = LocalDateTime.of(2011, 10, 31, 23, 59, 59)
+      val version = LocalDateTime.of(2009, 2, 1, 0, 0)
+
+      when(mockCallableStatement.getObject("p_application", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockResultSet.next()).thenReturn(true, false)
+      when(mockResultSet.getLong("application_id")).thenReturn(133L)
+      when(mockResultSet.getString("application_number")).thenReturn("GB123456789")
+      when(mockResultSet.getString("refunding_country_code")).thenReturn("LV")
+      when(mockResultSet.getTimestamp("application_version")).thenReturn(java.sql.Timestamp.valueOf(version))
+      when(mockResultSet.getTimestamp("period_start_date")).thenReturn(java.sql.Timestamp.valueOf(periodStart))
+      when(mockResultSet.getTimestamp("period_end_date")).thenReturn(java.sql.Timestamp.valueOf(periodEnd))
+      when(mockResultSet.getString("applicant_vat_reg_number")).thenReturn("123456789")
+      when(mockResultSet.getString("applicant_email_address")).thenReturn("applicant@example.com")
+      when(mockResultSet.getString("business_activity_code1")).thenReturn("2345")
+      when(mockResultSet.getInt("update_seq_number")).thenReturn(2)
+      when(mockResultSet.getString("application_status")).thenReturn("D")
+      when(mockResultSet.getString("submission_status")).thenReturn("S")
+
+      val response = repository.getApplicationDetails(133L).futureValue
+
+      response.applicationDetails                              should have size 1
+      response.applicationDetails.head.applicationId         shouldBe 133L
+      response.applicationDetails.head.applicationNumber     shouldBe Some("GB123456789")
+      response.applicationDetails.head.refundingCountryCode  shouldBe Some("LV")
+      response.applicationDetails.head.periodStartDate       shouldBe Some(periodStart)
+      response.applicationDetails.head.periodEndDate         shouldBe Some(periodEnd)
+      response.applicationDetails.head.applicantVatRegNumber shouldBe Some("123456789")
+      response.applicationDetails.head.applicantEmailAddress shouldBe Some("applicant@example.com")
+      response.applicationDetails.head.businessActivityCode1 shouldBe Some("2345")
+      response.applicationDetails.head.applicationStatus     shouldBe Some("D")
+      response.applicationDetails.head.submissionStatus      shouldBe Some("S")
+
+      verify(mockConnection).prepareCall(
+        "{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getApplicationDetails(?, ?)}"
+      )
+      verify(mockCallableStatement).setLong("p_application_id", 133L)
+      verify(mockCallableStatement).registerOutParameter("p_application", OracleTypes.CURSOR)
+      verify(mockResultSet).close()
+    }
+
+    "return an empty applicationDetails list when the cursor has no rows" in {
+      when(mockCallableStatement.getObject("p_application", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockResultSet.next()).thenReturn(false)
+
+      repository.getApplicationDetails(133L).futureValue.applicationDetails shouldBe empty
+    }
+  }
 }

@@ -738,6 +738,36 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getApplicationDetails" - {
+      "return application details as JSON" in new SetUp {
+        val response = ApplicationDetailsResponse(List.empty)
+        when(mockEuVatService.getApplicationDetails(133L)).thenReturn(Future.successful(response))
+
+        val result: Future[Result] = controller.getApplicationDetails(133L)(
+          fakeRequest.withMethod("GET")
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(response)
+      }
+
+      "return the specified JSON error when the service fails" in new SetUp {
+        when(mockEuVatService.getApplicationDetails(133L))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getApplicationDetails(133L)(
+          fakeRequest.withMethod("GET")
+        )
+
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) shouldBe Json.obj(
+          "status"  -> 500,
+          "error"   -> "Internal server error",
+          "message" -> "Database connection issue or server issue"
+        )
+      }
+    }
+
   }
 
   private class SetUp {

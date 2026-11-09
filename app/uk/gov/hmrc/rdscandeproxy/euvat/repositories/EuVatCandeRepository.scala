@@ -848,4 +848,67 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getApplicationDetails(applicationId: Long): Future[ApplicationDetailsResponse] = {
+    logger.info(s"Calling stored procedure getApplicationDetails for applicationId: $applicationId")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getApplicationDetails(?, ?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", applicationId)
+          storedProcedure.registerOutParameter("p_application", OracleTypes.CURSOR)
+          storedProcedure.execute()
+
+          val resultSet =
+            Option(storedProcedure.getObject("p_application", classOf[ResultSet]))
+              .getOrElse(throw new IllegalStateException("Stored procedure returned no cursor for p_application"))
+
+          Using.resource(resultSet) { applicationDetailsCursor =>
+            val applicationDetails =
+              Iterator
+                .continually(applicationDetailsCursor.next())
+                .takeWhile(identity)
+                .map { _ =>
+                  ApplicationDetails(
+                    applicationId              = applicationDetailsCursor.getLong("application_id"),
+                    applicationNumber          = Option(applicationDetailsCursor.getString("application_number")),
+                    refundingCountryCode       = Option(applicationDetailsCursor.getString("refunding_country_code")),
+                    applicationVersion         = Option(applicationDetailsCursor.getTimestamp("application_version")).map(_.toLocalDateTime),
+                    periodStartDate            = Option(applicationDetailsCursor.getTimestamp("period_start_date")).map(_.toLocalDateTime),
+                    periodEndDate              = Option(applicationDetailsCursor.getTimestamp("period_end_date")).map(_.toLocalDateTime),
+                    applicantVatRegNumber      = Option(applicationDetailsCursor.getString("applicant_vat_reg_number")),
+                    applicantEmailAddress      = Option(applicationDetailsCursor.getString("applicant_email_address")),
+                    applicantTelephoneNumber   = Option(applicationDetailsCursor.getString("applicant_telephone_num")),
+                    representativeId           = Option(applicationDetailsCursor.getString("representative_id")),
+                    representativeIdType       = Option(applicationDetailsCursor.getString("representative_id_type")),
+                    representativeCountry      = Option(applicationDetailsCursor.getString("representative_country")),
+                    representativeEmailAddress = Option(applicationDetailsCursor.getString("representative_email_address")),
+                    representativeTelephoneNum = Option(applicationDetailsCursor.getString("representative_telephone_num")),
+                    applicationLanguage        = Option(applicationDetailsCursor.getString("application_language")),
+                    bankAccountOwnerName       = Option(applicationDetailsCursor.getString("bank_account_owner_name")),
+                    bankAccountOwnerType       = Option(applicationDetailsCursor.getString("bank_account_owner_type")),
+                    ibanCode                   = Option(applicationDetailsCursor.getString("iban_code")),
+                    bicCode                    = Option(applicationDetailsCursor.getString("bic_code")),
+                    bankAccountCurrencyCode    = Option(applicationDetailsCursor.getString("bank_account_currency_code")),
+                    businessActivityCode1      = Option(applicationDetailsCursor.getString("business_activity_code1")),
+                    businessActivityCode2      = Option(applicationDetailsCursor.getString("business_activity_code2")),
+                    businessActivityCode3      = Option(applicationDetailsCursor.getString("business_activity_code3")),
+                    messageId                  = Option(applicationDetailsCursor.getString("message_id")),
+                    correlationId              = Option(applicationDetailsCursor.getString("correlation_id")),
+                    cipherText                 = Option(applicationDetailsCursor.getString("cipher_text")),
+                    encryptionStatus           = Option(applicationDetailsCursor.getString("encryption_status")),
+                    updateSeqNumber            = applicationDetailsCursor.getInt("update_seq_number"),
+                    applicationStatus          = Option(applicationDetailsCursor.getString("application_status")),
+                    submissionStatus           = Option(applicationDetailsCursor.getString("submission_status"))
+                  )
+                }
+                .toList
+
+            ApplicationDetailsResponse(applicationDetails)
+          }
+        }
+      }
+    }
+  }
 }
