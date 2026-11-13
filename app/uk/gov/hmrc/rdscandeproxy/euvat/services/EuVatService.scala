@@ -90,4 +90,7 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getApplicationDetails(applicationId: Long): Future[ApplicationDetailsResponse] =
     euvatCandeRepository.getApplicationDetails(applicationId)
 
+  def getAttachmentDetails(request: GetAttachmentDetailsRequest): Future[Option[GetAttachmentDetailsResponse]] =
+    euvatCandeRepository.getAttachmentDetails(request)
+
 }
