@@ -1178,4 +1178,45 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       repository.getApplicationDetails(133L).futureValue.applicationDetails shouldBe empty
     }
   }
+
+  "getAttachmentDetails" should {
+    "return the attachment record with the update sequence number" in {
+      val request = GetAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 4)
+
+      when(mockCallableStatement.getObject("p_attachment", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(10)
+
+      when(mockResultSet.next()).thenReturn(true, false)
+      when(mockResultSet.getInt("attachment_number")).thenReturn(4)
+      when(mockResultSet.getString("file_name")).thenReturn("test.pdf")
+      when(mockResultSet.getString("file_type")).thenReturn("pdf")
+      when(mockResultSet.getString("file_description")).thenReturn("pdf file attached")
+      when(mockResultSet.getInt("file_size")).thenReturn(42)
+
+      val result = repository.getAttachmentDetails(request).futureValue
+
+      result shouldBe Some(
+        GetAttachmentDetailsResponse(
+          attachmentNumber     = 4,
+          fileName             = Some("test.pdf"),
+          fileType             = Some("pdf"),
+          fileDescription      = Some("pdf file attached"),
+          fileSize             = Some(42),
+          updateSequenceNumber = 10
+        )
+      )
+    }
+
+    "return None when the cursor holds no attachment record" in {
+      val request = GetAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 99)
+
+      when(mockCallableStatement.getObject("p_attachment", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(10)
+      when(mockResultSet.next()).thenReturn(false)
+
+      val result = repository.getAttachmentDetails(request).futureValue
+      result shouldBe None
+    }
+  }
+
 }
