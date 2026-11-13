@@ -324,7 +324,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       when(mockResultSet.getString("goods_description_category")).thenReturn("10")
       when(mockResultSet.getString("goods_description_subcategory")).thenReturn("10.4.1")
       when(mockResultSet.getString("goods_description_text")).thenReturn("")
-      when(mockResultSet.getString("has_sad_reference_number")).thenReturn("Y")
+      when(mockResultSet.getString("has_sad_reference_number")).thenReturn("true")
       when(mockResultSet.getString("sad_reference_number")).thenReturn("SAD123456789")
       when(mockResultSet.getString("reference_information")).thenReturn("Import declaration reference")
       when(mockResultSet.getString("currency_code")).thenReturn("EUR")
@@ -347,7 +347,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
           goodsDescriptionCategory    = "10",
           goodsDescriptionSubcategory = Some("10.4.1"),
           goodsDescriptionText        = Some(""),
-          hasSadReferenceNumber       = Some("Y"),
+          hasSadReferenceNumber       = Some("true"),
           sadReferenceNumber          = Some("SAD123456789"),
           referenceInformation        = Some("Import declaration reference"),
           currencyCode                = Some("EUR"),
@@ -424,7 +424,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = Some("10.4.1"),
         goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
@@ -452,7 +452,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = Some("10.4.1"),
         goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
@@ -490,7 +490,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = None,
         goodsDescriptionText        = None,
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
@@ -521,7 +521,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = None,
         goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
@@ -559,7 +559,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = Some("10.4.1"),
         goodsDescriptionText        = None,
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
@@ -597,7 +597,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         goodsDescriptionCategory    = "10",
         goodsDescriptionSubCategory = Some("10.4.1"),
         goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("N"),
+        simplifiedInvoiceIndicator  = Some("false"),
         supplierName                = Some("Finnish International"),
         supplierAddress1            = Some("356 High Street"),
         supplierAddress2            = Some("Rochdale"),
