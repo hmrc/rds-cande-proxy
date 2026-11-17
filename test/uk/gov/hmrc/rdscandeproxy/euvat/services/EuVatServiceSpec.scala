@@ -578,4 +578,38 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result.getMessage should include("bang")
   }
 
+  "EuVatService.getFullAttachmentDetails" should {
+    val getFullAttachmentRequest: GetFullAttachmentDetailsRequest = GetFullAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 4)
+
+    val getFullAttachmentResponse: GetFullAttachmentDetailsResponse = GetFullAttachmentDetailsResponse(
+      attachmentNumber     = 4,
+      fileName             = Some("test.pdf"),
+      fileType             = Some("pdf"),
+      fileDescription      = Some("pdf file attached"),
+      fileSize             = Some(42),
+      fileContent          = Some("dGVzdCBmaWxlIGNvbnRlbnQ="),
+      updateSequenceNumber = 10
+    )
+
+    "succeed" when:
+      "retrieving a full attachment record" in:
+        when(mockConnector.getFullAttachmentDetails(any()))
+          .thenReturn(Future.successful(Some(getFullAttachmentResponse)))
+        val result = service.getFullAttachmentDetails(getFullAttachmentRequest).futureValue
+        result shouldBe Some(getFullAttachmentResponse)
+
+      "no attachment record exists" in:
+        when(mockConnector.getFullAttachmentDetails(any()))
+          .thenReturn(Future.successful(None))
+        val result = service.getFullAttachmentDetails(getFullAttachmentRequest).futureValue
+        result shouldBe None
+
+    "fail" when:
+      "reading from the database" in:
+        when(mockConnector.getFullAttachmentDetails(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+        val result = intercept[Exception](service.getFullAttachmentDetails(getFullAttachmentRequest).futureValue)
+        result.getMessage should include("bang")
+  }
+
 }

@@ -400,4 +400,23 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
         }
     }
 
+  def getFullAttachmentDetails(applicationId: Long, attachmentNumber: Int): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getFullAttachmentDetails(GetFullAttachmentDetailsRequest(applicationId, attachmentNumber))
+        .map {
+          case Some(response) => Ok(Json.toJson(response))
+          case None =>
+            logger.error(s"No full attachment record for applicationId $applicationId attachmentNumber $attachmentNumber")
+            InternalServerError("Failed to retrieve full attachment details")
+        }
+        .recover { case ex: Exception =>
+          logger.error(
+            s"Error while retrieving the full attachment details for application $applicationId, attachmentNumber $attachmentNumber from oracle database",
+            ex
+          )
+          InternalServerError("Failed to retrieve full attachment details")
+        }
+    }
+
 }
