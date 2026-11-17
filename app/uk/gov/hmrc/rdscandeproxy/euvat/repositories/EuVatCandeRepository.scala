@@ -911,4 +911,40 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getAttachmentDetails(request: GetAttachmentDetailsRequest): Future[Option[GetAttachmentDetailsResponse]] = {
+    logger.info(
+      s"Calling stored procedure getAttachmentDetails for applicationId: ${request.applicationId} attachmentNumber: ${request.attachmentNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getAttachment(?, ?, ?, ?)}")) { storedProcedure =>
+
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_attachment_number", request.attachmentNumber)
+
+          storedProcedure.registerOutParameter("p_attachment", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+          storedProcedure.execute()
+
+          val updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          val rs = storedProcedure.getObject("p_attachment", classOf[ResultSet])
+
+          Using.resource(rs) { cursor =>
+            Option.when(cursor.next()) {
+              GetAttachmentDetailsResponse(
+                attachmentNumber     = cursor.getInt("attachment_number"),
+                fileName             = Option(cursor.getString("file_name")),
+                fileType             = Option(cursor.getString("file_type")),
+                fileDescription      = Option(cursor.getString("file_description")),
+                fileSize             = Option(cursor.getInt("file_size")),
+                updateSequenceNumber = updateSequenceNumber
+              )
+            }
+          }
+        }
+      }
+    }
+  }
 }

@@ -768,6 +768,39 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getAttachmentDetails" - {
+      "return 200 and the attachment details when the attachment record exists" in new SetUp {
+        when(mockEuVatService.getAttachmentDetails(any()))
+          .thenReturn(Future.successful(Some(getAttachmentDetailsResponse)))
+
+        val result: Future[Result] = controller.getAttachmentDetails(404L, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(getAttachmentDetailsResponse)
+      }
+
+      "return 500 when no attachment record exists for the applicationId and attachmentNumber" in new SetUp {
+        when(mockEuVatService.getAttachmentDetails(any()))
+          .thenReturn(Future.successful(None))
+
+        val result: Future[Result] = controller.getAttachmentDetails(404L, 99)(fakeRequest.withMethod("GET"))
+
+        status(result)          shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) shouldBe "Failed to retrieve attachment details"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getAttachmentDetails(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getAttachmentDetails(404, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve attachment details")
+      }
+    }
+
   }
 
   private class SetUp {
@@ -946,6 +979,15 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       updateSequenceNumber        = 1
     )
     val updateImportationDetailsResponse: UpdateImportDetailsResponse = UpdateImportDetailsResponse(2)
+
+    val getAttachmentDetailsResponse: GetAttachmentDetailsResponse = GetAttachmentDetailsResponse(
+      attachmentNumber     = 11,
+      fileName             = Some("test.pdf"),
+      fileType             = Some("pdf"),
+      fileDescription      = Some("pdf file attached"),
+      fileSize             = Some(42),
+      updateSequenceNumber = 10
+    )
 
   }
 
