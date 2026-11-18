@@ -1219,4 +1219,31 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+  "deleteAttachment" should {
+    "call the deleteAttachment stored procedure with correct params" in {
+      val req = DeleteAttachmentRequest(applicationId = 404L, attachmentNumber = 4, updateSequenceNumber = 1)
+
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
+
+      val result = repository.deleteAttachment(req).futureValue
+      result shouldBe DeleteAttachmentResponse(2)
+
+      verify(mockConnection).prepareCall(any())
+      verify(mockCallableStatement).setLong("p_application_id", 404L)
+      verify(mockCallableStatement).setInt("p_attachment_number", 4)
+      verify(mockCallableStatement).setInt("p_update_seq_number", 1)
+      verify(mockCallableStatement).execute()
+    }
+
+    "propagate exception when stored procedure fails" in {
+      val req = DeleteAttachmentRequest(applicationId = 999L, attachmentNumber = 5, updateSequenceNumber = 3)
+
+      when(mockCallableStatement.execute()).thenThrow(new RuntimeException("SP failure"))
+
+      intercept[RuntimeException] {
+        repository.deleteAttachment(req).futureValue
+      }
+    }
+  }
+
 }

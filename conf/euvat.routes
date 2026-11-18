@@ -19,3 +19,4 @@ DELETE  /delete-import                                                  uk.gov.h
 POST    /get-reference-information-count                                uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getReferenceInformationCount
 GET     /get-application-details/:applicationId                         uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getApplicationDetails(applicationId: Long)
 GET     /get-attachment-details/:applicationId/:attachmentNumber        uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getAttachmentDetails(applicationId: Long, attachmentNumber: Int)
+DELETE  /delete-attachment                                              uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteAttachment

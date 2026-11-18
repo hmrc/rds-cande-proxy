@@ -400,4 +400,21 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
         }
     }
 
+  def deleteAttachment: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[DeleteAttachmentRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for DeleteAttachmentRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .deleteAttachment(req)
+            .map(response => Ok(Json.toJson(response)))
+            .recover { case ex: Exception =>
+              logger.error("Error while deleting the attachment", ex)
+              InternalServerError("Failed to delete attachment")
+            }
+      }
+    }
+
 }
