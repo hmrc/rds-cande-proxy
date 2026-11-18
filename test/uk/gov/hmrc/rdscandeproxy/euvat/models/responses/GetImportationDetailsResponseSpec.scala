@@ -25,26 +25,26 @@ import java.time.LocalDateTime
 class GetImportationDetailsResponseSpec extends AnyWordSpec with Matchers {
 
   private val fullResponse = GetImportationDetailsResponse(
-    applicationId               = 404,
-    itemNumber                  = 4,
-    issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-    supplierName                = Some("Finnish International"),
-    supplierAddressLine1        = Some("356 High Street"),
-    supplierAddressLine2        = Some("Rochdale"),
-    supplierAddressLine3        = Some("England"),
-    supplierCountryCode         = Some("GB"),
-    goodsDescriptionCategory    = "10",
-    goodsDescriptionSubcategory = Some("10.4.1"),
-    goodsDescriptionText        = Some(""),
-    hasSadReferenceNumber       = Some("true"),
-    sadReferenceNumber          = Some("SAD123456789"),
-    referenceInformation        = Some("Import declaration reference"),
-    currencyCode                = Some("EUR"),
-    taxableAmount               = Some(BigDecimal(1000)),
-    vatAmount                   = Some(BigDecimal(99)),
-    deductibleVatAmount         = Some(BigDecimal(40)),
-    updateSequenceNumber        = 1,
-    periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+    applicationId           = 404,
+    itemNumber              = 4,
+    issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+    supplierName            = Some("Finnish International"),
+    supplierAddressLine1    = Some("356 High Street"),
+    supplierAddressLine2    = Some("Rochdale"),
+    supplierAddressLine3    = Some("England"),
+    supplierCountryCode     = Some("GB"),
+    goodsDescriptionCode    = "10",
+    goodsDescriptionSubCode = Some("10.4.1"),
+    goodsDescriptionText    = Some(""),
+    hasSadReferenceNumber   = Some("true"),
+    sadReferenceNumber      = Some("SAD123456789"),
+    referenceInformation    = Some("Import declaration reference"),
+    currencyCode            = Some("EUR"),
+    taxableAmount           = Some(BigDecimal(1000)),
+    vatAmount               = Some(BigDecimal(99)),
+    deductibleVatAmount     = Some(BigDecimal(40)),
+    updateSequenceNumber    = 1,
+    periodStartDate         = LocalDateTime.of(2026, 1, 1, 0, 0)
   )
 
   "GetImportationDetailsResponse JSON format" should {
@@ -55,34 +55,34 @@ class GetImportationDetailsResponseSpec extends AnyWordSpec with Matchers {
 
     "omit absent optional fields from the JSON" in {
       val minimal = GetImportationDetailsResponse(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        issuingDate                 = None,
-        supplierName                = None,
-        supplierAddressLine1        = None,
-        supplierAddressLine2        = None,
-        supplierAddressLine3        = None,
-        supplierCountryCode         = None,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubcategory = None,
-        goodsDescriptionText        = None,
-        hasSadReferenceNumber       = None,
-        sadReferenceNumber          = None,
-        referenceInformation        = None,
-        currencyCode                = None,
-        taxableAmount               = None,
-        vatAmount                   = None,
-        deductibleVatAmount         = None,
-        updateSequenceNumber        = 3,
-        periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+        applicationId           = 404,
+        itemNumber              = 4,
+        issuingDate             = None,
+        supplierName            = None,
+        supplierAddressLine1    = None,
+        supplierAddressLine2    = None,
+        supplierAddressLine3    = None,
+        supplierCountryCode     = None,
+        goodsDescriptionCode    = "10",
+        goodsDescriptionSubCode = None,
+        goodsDescriptionText    = None,
+        hasSadReferenceNumber   = None,
+        sadReferenceNumber      = None,
+        referenceInformation    = None,
+        currencyCode            = None,
+        taxableAmount           = None,
+        vatAmount               = None,
+        deductibleVatAmount     = None,
+        updateSequenceNumber    = 3,
+        periodStartDate         = LocalDateTime.of(2026, 1, 1, 0, 0)
       )
 
       Json.toJson(minimal) shouldBe Json.obj(
-        "applicationId"            -> 404,
-        "itemNumber"               -> 4,
-        "goodsDescriptionCategory" -> "10",
-        "updateSequenceNumber"     -> 3,
-        "periodStartDate"          -> "2026-01-01T00:00:00"
+        "applicationId"        -> 404,
+        "itemNumber"           -> 4,
+        "goodsDescriptionCode" -> "10",
+        "updateSequenceNumber" -> 3,
+        "periodStartDate"      -> "2026-01-01T00:00:00"
       )
       Json.toJson(minimal).as[GetImportationDetailsResponse] shouldBe minimal
     }
