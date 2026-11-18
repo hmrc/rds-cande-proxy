@@ -839,6 +839,65 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "add attachment" - {
+      "return 200 and a successful response when DB returns records" in new SetUp {
+        when(mockEuVatService.addAttachment(any()))
+          .thenReturn(Future.successful(attachmentResponse))
+
+        val result: Future[Result] = controller.addAttachment()(
+          fakeRequest
+            .withMethod("POST")
+            .withJsonBody(Json.toJson(attachmentRequest))
+        )
+
+        status(result) shouldBe OK
+        contentType(result) shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(attachmentResponse)
+
+        verify(mockEuVatService).addAttachment(attachmentRequest)
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.addAttachment()(
+          fakeRequest.withMethod("POST")
+        )
+
+        status(result) shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.addAttachment()(
+          fakeRequest
+            .withMethod("POST")
+            .withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+
+        verifyNoInteractions(mockEuVatService)
+      }
+
+      "return 500 when service fails" in new SetUp {
+        when(mockEuVatService.addAttachment(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.addAttachment()(
+          fakeRequest
+            .withMethod("POST")
+            .withJsonBody(Json.toJson(attachmentRequest))
+        )
+
+        status(result) shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to add attachment")
+
+        verify(mockEuVatService).addAttachment(attachmentRequest)
+      }
+    }
+
   }
 
   private class SetUp {
@@ -1026,6 +1085,23 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       fileSize             = Some(42),
       updateSequenceNumber = 10
     )
+
+    val attachmentRequest: AddAttachmentRequest =
+      AddAttachmentRequest(
+        applicationId = 123456L,
+        fileName = "invoice.pdf",
+        fileType = "application/pdf",
+        fileDescription = Some("Supporting invoice"),
+        fileSize = 5L,
+        fileContent = Array[Byte](1, 2, 3, 4, 5),
+        updateSequenceNumber = 1
+      )
+
+    val attachmentResponse: AddAttachmentResponse =
+      AddAttachmentResponse(
+        attachmentNumber = 4,
+        updateSequenceNumber = 2
+      )
 
   }
 

@@ -594,4 +594,41 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     }
   }
 
+  "EuVatService.addAttachment" should {
+
+    val attachmentRequest = AddAttachmentRequest(
+      applicationId = 123456L,
+      fileName = "invoice.pdf",
+      fileType = "application/pdf",
+      fileDescription = Some("Supporting invoice"),
+      fileSize = 5L,
+      fileContent = Array[Byte](1, 2, 3, 4, 5),
+      updateSequenceNumber = 1
+    )
+
+    val attachmentResponse = AddAttachmentResponse(
+      attachmentNumber = 4,
+      updateSequenceNumber = 2
+    )
+
+    "succeed" when :
+      "adding an attachment to the database" in :
+        when(mockConnector.addAttachment(any()))
+          .thenReturn(Future.successful(attachmentResponse))
+
+        val result = service.addAttachment(attachmentRequest).futureValue
+
+        result shouldBe attachmentResponse
+
+    "fail" when :
+      "saving the attachment to the database" in :
+        when(mockConnector.addAttachment(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+
+        val result =
+          intercept[Exception](service.addAttachment(attachmentRequest).futureValue)
+
+        result.getMessage should include("bang")
+  }
+
 }

@@ -8,6 +8,7 @@ GET     /get-import-details/:applicationId/:itemNumber                  uk.gov.h
 POST    /get-supplier-vrn-count                                         uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierVrnCount
 POST    /get-supplier-taxIdentifier-count                               uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getSupplierTaxIdentifierCount
 POST    /add-import                                                     uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addImport
+POST    /add-attachment                                                 uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.addAttachment
 PUT     /update-purchase-details                                        uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.updatePurchaseDetails
 POST    /get-purchases-and-imports                                      uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getPurchaseImportList
 DELETE  /delete-application                                             uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteApplication

@@ -17,8 +17,9 @@
 package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 
 import oracle.jdbc.OracleTypes
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito.{inOrder as mockInOrder, mock, never, times, verify, when}
+import org.mockito.Mockito.{mock, never, times, verify, when, inOrder as mockInOrder}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
@@ -1246,4 +1247,136 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
+
+  "addAttachment" should {
+
+    val fileContent = Array[Byte](1, 2, 3, 4, 5)
+
+    val request = AddAttachmentRequest(
+      applicationId = 123456L,
+      fileName = "invoice.pdf",
+      fileType = "application/pdf",
+      fileDescription = Some("Supporting invoice"),
+      fileSize = fileContent.length.toLong,
+      fileContent = fileContent,
+      updateSequenceNumber = 1
+    )
+
+    "call the addAttachment stored procedure and return the attachment number and updated sequence number" in {
+
+      when(mockCallableStatement.getInt("p_attachment_number"))
+        .thenReturn(4)
+
+      when(mockCallableStatement.getInt("p_update_seq_number"))
+        .thenReturn(2)
+
+      val result = repository.addAttachment(request).futureValue
+
+      result shouldBe AddAttachmentResponse(
+        attachmentNumber = 4,
+        updateSequenceNumber = 2
+      )
+
+      verify(mockConnection).prepareCall(
+        "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addAttachment(?, ?, ?, ?, ?, ?, ?, ?)}"
+      )
+
+      verify(mockCallableStatement).setLong(
+        "p_application_id",
+        123456L
+      )
+
+      verify(mockCallableStatement).setString(
+        "p_file_name",
+        "invoice.pdf"
+      )
+
+      verify(mockCallableStatement).setString(
+        "p_file_type",
+        "application/pdf"
+      )
+
+      verify(mockCallableStatement).setString(
+        "p_file_description",
+        "Supporting invoice"
+      )
+
+      verify(mockCallableStatement).setLong(
+        "p_file_size",
+        5L
+      )
+
+      verify(mockCallableStatement).setInt(
+        "p_update_seq_number",
+        1
+      )
+
+      verify(mockCallableStatement).registerOutParameter(
+        "p_update_seq_number",
+        OracleTypes.NUMBER
+      )
+
+      verify(mockCallableStatement).registerOutParameter(
+        "p_attachment_number",
+        OracleTypes.NUMBER
+      )
+
+      verify(mockCallableStatement).execute()
+    }
+
+    "bind the correct file content to the BLOB parameter" in {
+      when(mockCallableStatement.getInt("p_attachment_number"))
+        .thenReturn(4)
+
+      when(mockCallableStatement.getInt("p_update_seq_number"))
+        .thenReturn(2)
+
+      repository.addAttachment(request).futureValue
+
+      val streamCaptor =
+        ArgumentCaptor.forClass(classOf[java.io.InputStream])
+
+      verify(mockCallableStatement).setBinaryStream(
+        anyString(),
+        streamCaptor.capture(),
+        anyInt()
+      )
+
+      val capturedBytes =
+        streamCaptor.getValue.readAllBytes()
+
+      capturedBytes.toSeq shouldBe fileContent.toSeq
+    }
+
+    "pass null when file description is absent" in {
+
+      val requestWithoutDescription =
+        request.copy(fileDescription = None)
+
+      when(mockCallableStatement.getInt("p_attachment_number"))
+        .thenReturn(4)
+
+      when(mockCallableStatement.getInt("p_update_seq_number"))
+        .thenReturn(2)
+
+      repository.addAttachment(requestWithoutDescription).futureValue
+
+      verify(mockCallableStatement).setString(
+        "p_file_description",
+        null
+      )
+    }
+
+    "propagate exception when the stored procedure fails" in {
+
+      when(mockCallableStatement.execute())
+        .thenThrow(new java.sql.SQLException("SP failure"))
+
+      val thrown = intercept[Exception] {
+        repository.addAttachment(request).futureValue
+      }
+
+      thrown.getMessage should include("SP failure")
+    }
+  }
 }
