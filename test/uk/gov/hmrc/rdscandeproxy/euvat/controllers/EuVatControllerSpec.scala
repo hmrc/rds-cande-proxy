@@ -801,6 +801,44 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "deleteAttachment" - {
+      "return 200 with the new update sequence number when the delete succeeds" in new SetUp {
+        when(mockEuVatService.deleteAttachment(any()))
+          .thenReturn(Future.successful(DeleteAttachmentResponse(2)))
+
+        val json: JsValue = Json.toJson(DeleteAttachmentRequest(applicationId = 404L, attachmentNumber = 4, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteAttachment()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(DeleteAttachmentResponse(2))
+      }
+
+      "return 400 when request body is missing" in new SetUp {
+        val result: Future[Result] = controller.deleteAttachment()(fakeRequest.withMethod("DELETE"))
+
+        status(result)          shouldBe BAD_REQUEST
+        contentAsString(result) shouldBe "Invalid request body"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.deleteAttachment(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val json: JsValue = Json.toJson(DeleteAttachmentRequest(applicationId = 404L, attachmentNumber = 4, updateSequenceNumber = 1))
+
+        val result: Future[Result] = controller.deleteAttachment()(
+          fakeRequest.withMethod("DELETE").withJsonBody(json)
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to delete attachment")
+      }
+    }
+
   }
 
   private class SetUp {

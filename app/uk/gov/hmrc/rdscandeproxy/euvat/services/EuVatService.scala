@@ -93,4 +93,8 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getAttachmentDetails(request: GetAttachmentDetailsRequest): Future[Option[GetAttachmentDetailsResponse]] =
     euvatCandeRepository.getAttachmentDetails(request)
 
+  def deleteAttachment(request: DeleteAttachmentRequest): Future[DeleteAttachmentResponse] =
+    euvatCandeRepository
+      .deleteAttachment(request)
+
 }

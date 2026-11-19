@@ -947,4 +947,23 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def deleteAttachment(request: DeleteAttachmentRequest): Future[DeleteAttachmentResponse] = {
+    logger.info(
+      s"Calling stored procedure deleteAttachment for applicationId: ${request.applicationId} attachmentNumber: ${request.attachmentNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.deleteAttachment(?, ?, ?)}")) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_attachment_number", request.attachmentNumber)
+          storedProcedure.setInt("p_update_seq_number", request.updateSequenceNumber)
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+          storedProcedure.execute()
+          DeleteAttachmentResponse(storedProcedure.getInt("p_update_seq_number"))
+        }
+      }
+    }
+  }
+
 }
