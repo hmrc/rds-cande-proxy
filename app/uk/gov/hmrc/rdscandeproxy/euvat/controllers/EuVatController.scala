@@ -268,6 +268,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getAllAttachments: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[GetAllAttachmentsRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for GetAllAttachmentsRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .getAllAttachments(req)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error(s"Error while retrieving attachments for Application ID  ${req.applicationId}", ex)
+              InternalServerError("Failed to retrieve attachments")
+            }
+      }
+    }
+
   def updateApplicationDetails: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[UpdateApplicationDetailsRequest]) match {

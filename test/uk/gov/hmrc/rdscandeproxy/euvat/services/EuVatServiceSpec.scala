@@ -22,7 +22,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
+import uk.gov.hmrc.rdscandeproxy.euvat.models.{Attachment, PurchaseImport}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.repositories.EuVatCandeRepository
@@ -576,6 +576,25 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
           .thenReturn(Future.failed(new Exception("bang")))
         val result = intercept[Exception](service.getAttachmentDetails(getAttachmentRequest).futureValue)
         result.getMessage should include("bang")
+  }
+
+  "EuVatService.getAllAttachments" should {
+    val req = GetAllAttachmentsRequest(applicationId = 104)
+    val response = GetAllAttachmentsResponse(
+      attachments      = List(Attachment(123, Some("file1"), Some("pdf"), Some("test file"), Some(1825))),
+      totalAttachments = 1
+    )
+
+    "succeed" in {
+      when(mockConnector.getAllAttachments(any())).thenReturn(Future.successful(response))
+      service.getAllAttachments(req).futureValue shouldBe response
+    }
+
+    "fail" in {
+      when(mockConnector.getAllAttachments(any())).thenReturn(Future.failed(new Exception("bang")))
+      val result = intercept[Exception](service.getAllAttachments(req).futureValue)
+      result.getMessage should include("bang")
+    }
   }
 
   "EuVatService.getFullAttachmentDetails" should {
