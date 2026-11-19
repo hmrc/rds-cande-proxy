@@ -25,6 +25,7 @@ import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
 import java.sql.{Connection, ResultSet}
 import java.time.LocalDateTime
+import java.util.Base64
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -939,6 +940,43 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                 fileType             = Option(cursor.getString("file_type")),
                 fileDescription      = Option(cursor.getString("file_description")),
                 fileSize             = Option(cursor.getInt("file_size")),
+                updateSequenceNumber = updateSequenceNumber
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def getFullAttachmentDetails(request: GetFullAttachmentDetailsRequest): Future[Option[GetFullAttachmentDetailsResponse]] = {
+    logger.info(
+      s"Calling stored procedure getFullAttachment for applicationId: ${request.applicationId} attachmentNumber: ${request.attachmentNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getFullAttachment(?, ?, ?, ?)}")) { storedProcedure =>
+
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_attachment_number", request.attachmentNumber)
+
+          storedProcedure.registerOutParameter("p_attachment", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+          storedProcedure.execute()
+
+          val updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          val rs = storedProcedure.getObject("p_attachment", classOf[ResultSet])
+
+          Using.resource(rs) { cursor =>
+            Option.when(cursor.next()) {
+              GetFullAttachmentDetailsResponse(
+                attachmentNumber     = cursor.getInt("attachment_number"),
+                fileName             = Option(cursor.getString("file_name")),
+                fileType             = Option(cursor.getString("file_type")),
+                fileDescription      = Option(cursor.getString("file_description")),
+                fileSize             = Option(cursor.getBigDecimal("file_size")).map(_.intValue),
+                fileContent          = Option(cursor.getBytes("file_content")).map(Base64.getEncoder.encodeToString),
                 updateSequenceNumber = updateSequenceNumber
               )
             }
