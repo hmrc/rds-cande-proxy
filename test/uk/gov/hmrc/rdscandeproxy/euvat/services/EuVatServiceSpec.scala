@@ -631,4 +631,20 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result.getMessage should include("bang")
   }
 
+  "EuVatService.deleteAttachment" should {
+    val req = DeleteAttachmentRequest(applicationId = 404L, attachmentNumber = 4, updateSequenceNumber = 1)
+
+    "succeed" in {
+      when(mockConnector.deleteAttachment(any())).thenReturn(Future.successful(DeleteAttachmentResponse(2)))
+      val result = service.deleteAttachment(req).futureValue
+      result shouldBe DeleteAttachmentResponse(2)
+    }
+
+    "fail" in {
+      when(mockConnector.deleteAttachment(any())).thenReturn(Future.failed(new Exception("bang")))
+      val result = intercept[Exception](service.deleteAttachment(req).futureValue)
+      result.getMessage should include("bang")
+    }
+  }
+
 }
