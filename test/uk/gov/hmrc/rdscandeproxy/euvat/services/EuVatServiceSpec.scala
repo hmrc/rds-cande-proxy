@@ -597,22 +597,22 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   "EuVatService.addAttachment" should {
 
     val attachmentRequest = AddAttachmentRequest(
-      applicationId = 123456L,
-      fileName = "invoice.pdf",
-      fileType = "application/pdf",
-      fileDescription = Some("Supporting invoice"),
-      fileSize = 5L,
-      fileContent = Array[Byte](1, 2, 3, 4, 5),
+      applicationId        = 123456L,
+      fileName             = "invoice.pdf",
+      fileType             = "application/pdf",
+      fileDescription      = Some("Supporting invoice"),
+      fileSize             = 5L,
+      fileContent          = Array[Byte](1, 2, 3, 4, 5),
       updateSequenceNumber = 1
     )
 
     val attachmentResponse = AddAttachmentResponse(
-      attachmentNumber = 4,
+      attachmentNumber     = 4,
       updateSequenceNumber = 2
     )
 
-    "succeed" when :
-      "adding an attachment to the database" in :
+    "succeed" when:
+      "adding an attachment to the database" in:
         when(mockConnector.addAttachment(any()))
           .thenReturn(Future.successful(attachmentResponse))
 
@@ -620,8 +620,8 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
 
         result shouldBe attachmentResponse
 
-    "fail" when :
-      "saving the attachment to the database" in :
+    "fail" when:
+      "saving the attachment to the database" in:
         when(mockConnector.addAttachment(any()))
           .thenReturn(Future.failed(new Exception("bang")))
 

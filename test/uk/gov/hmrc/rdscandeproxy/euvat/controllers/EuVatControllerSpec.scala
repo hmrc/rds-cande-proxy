@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.rdscandeproxy.euvat.controllers
 
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
@@ -850,11 +851,27 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
             .withJsonBody(Json.toJson(attachmentRequest))
         )
 
-        status(result) shouldBe OK
-        contentType(result) shouldBe Some("application/json")
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
         contentAsJson(result) shouldBe Json.toJson(attachmentResponse)
 
-        verify(mockEuVatService).addAttachment(attachmentRequest)
+        val requestCaptor =
+          ArgumentCaptor.forClass(classOf[AddAttachmentRequest])
+
+        verify(mockEuVatService)
+          .addAttachment(requestCaptor.capture())
+
+        val capturedRequest = requestCaptor.getValue
+
+        capturedRequest.applicationId        shouldBe attachmentRequest.applicationId
+        capturedRequest.fileName             shouldBe attachmentRequest.fileName
+        capturedRequest.fileType             shouldBe attachmentRequest.fileType
+        capturedRequest.fileDescription      shouldBe attachmentRequest.fileDescription
+        capturedRequest.fileSize             shouldBe attachmentRequest.fileSize
+        capturedRequest.updateSequenceNumber shouldBe attachmentRequest.updateSequenceNumber
+
+        capturedRequest.fileContent.toSeq shouldBe
+          attachmentRequest.fileContent.toSeq
       }
 
       "return 400 when request body is missing" in new SetUp {
@@ -862,7 +879,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
           fakeRequest.withMethod("POST")
         )
 
-        status(result) shouldBe BAD_REQUEST
+        status(result)          shouldBe BAD_REQUEST
         contentAsString(result) shouldBe "Invalid request body"
 
         verifyNoInteractions(mockEuVatService)
@@ -875,7 +892,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
             .withJsonBody(Json.obj("invalid" -> "body"))
         )
 
-        status(result) shouldBe BAD_REQUEST
+        status(result)          shouldBe BAD_REQUEST
         contentAsString(result) shouldBe "Invalid request body"
 
         verifyNoInteractions(mockEuVatService)
@@ -891,10 +908,10 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
             .withJsonBody(Json.toJson(attachmentRequest))
         )
 
-        status(result) shouldBe INTERNAL_SERVER_ERROR
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
         contentAsString(result) should include("Failed to add attachment")
 
-        verify(mockEuVatService).addAttachment(attachmentRequest)
+        verify(mockEuVatService).addAttachment(any[AddAttachmentRequest])
       }
     }
 
@@ -1088,18 +1105,18 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
     val attachmentRequest: AddAttachmentRequest =
       AddAttachmentRequest(
-        applicationId = 123456L,
-        fileName = "invoice.pdf",
-        fileType = "application/pdf",
-        fileDescription = Some("Supporting invoice"),
-        fileSize = 5L,
-        fileContent = Array[Byte](1, 2, 3, 4, 5),
+        applicationId        = 123456L,
+        fileName             = "invoice.pdf",
+        fileType             = "application/pdf",
+        fileDescription      = Some("Supporting invoice"),
+        fileSize             = 5L,
+        fileContent          = Array[Byte](1, 2, 3, 4, 5),
         updateSequenceNumber = 1
       )
 
     val attachmentResponse: AddAttachmentResponse =
       AddAttachmentResponse(
-        attachmentNumber = 4,
+        attachmentNumber     = 4,
         updateSequenceNumber = 2
       )
 

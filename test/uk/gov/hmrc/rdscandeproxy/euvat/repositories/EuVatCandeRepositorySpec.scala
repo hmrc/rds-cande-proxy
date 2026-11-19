@@ -19,7 +19,7 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito.{mock, never, times, verify, when, inOrder as mockInOrder}
+import org.mockito.Mockito.{inOrder as mockInOrder, mock, never, times, verify, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
@@ -1253,12 +1253,12 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     val fileContent = Array[Byte](1, 2, 3, 4, 5)
 
     val request = AddAttachmentRequest(
-      applicationId = 123456L,
-      fileName = "invoice.pdf",
-      fileType = "application/pdf",
-      fileDescription = Some("Supporting invoice"),
-      fileSize = fileContent.length.toLong,
-      fileContent = fileContent,
+      applicationId        = 123456L,
+      fileName             = "invoice.pdf",
+      fileType             = "application/pdf",
+      fileDescription      = Some("Supporting invoice"),
+      fileSize             = fileContent.length.toLong,
+      fileContent          = fileContent,
       updateSequenceNumber = 1
     )
 
@@ -1273,7 +1273,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       val result = repository.addAttachment(request).futureValue
 
       result shouldBe AddAttachmentResponse(
-        attachmentNumber = 4,
+        attachmentNumber     = 4,
         updateSequenceNumber = 2
       )
 
@@ -1333,19 +1333,15 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
       repository.addAttachment(request).futureValue
 
-      val streamCaptor =
-        ArgumentCaptor.forClass(classOf[java.io.InputStream])
+      val bytesCaptor =
+        ArgumentCaptor.forClass(classOf[Array[Byte]])
 
-      verify(mockCallableStatement).setBinaryStream(
-        anyString(),
-        streamCaptor.capture(),
-        anyInt()
+      verify(mockCallableStatement).setBytes(
+        org.mockito.ArgumentMatchers.eq("p_file_content"),
+        bytesCaptor.capture()
       )
 
-      val capturedBytes =
-        streamCaptor.getValue.readAllBytes()
-
-      capturedBytes.toSeq shouldBe fileContent.toSeq
+      bytesCaptor.getValue.toSeq shouldBe fileContent.toSeq
     }
 
     "pass null when file description is absent" in {
