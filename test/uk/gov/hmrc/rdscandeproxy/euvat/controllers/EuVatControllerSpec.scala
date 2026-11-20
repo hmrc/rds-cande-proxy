@@ -157,10 +157,10 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     "add import" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
         val importRequest = AddImportRequest(
-          applicationId            = 123456,
-          goodsDescriptionCategory = "3",
-          goodsDescriptionText     = Some("Electronics"),
-          updateSequenceNumber     = 1
+          applicationId        = 123456,
+          goodsDescriptionCode = "3",
+          goodsDescriptionText = Some("Electronics"),
+          updateSequenceNumber = 1
         )
 
         val importResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
@@ -188,10 +188,10 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         when(mockEuVatService.addImport(any())).thenReturn(Future.failed(exception))
 
         val importRequest = AddImportRequest(
-          applicationId            = 123456,
-          goodsDescriptionCategory = "3",
-          goodsDescriptionText     = Some("Electronics"),
-          updateSequenceNumber     = 1
+          applicationId        = 123456,
+          goodsDescriptionCode = "3",
+          goodsDescriptionText = Some("Electronics"),
+          updateSequenceNumber = 1
         )
 
         val result: Future[Result] = controller.addImport()(
@@ -369,25 +369,25 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     "updatePurchaseDetails" - {
       "return 200 and a successful response when DB returns records" in new SetUp {
         val req: UpdatePurchaseDetailsRequest = UpdatePurchaseDetailsRequest(
-          applicationId               = 404,
-          itemNumber                  = 4,
-          goodsDescriptionCategory    = "10",
-          goodsDescriptionSubCategory = Some("10.4.1"),
-          goodsDescriptionText        = Some("office stationery and consumables"),
-          simplifiedInvoiceIndicator  = Some("false"),
-          supplierName                = Some("Finnish International"),
-          supplierAddress1            = Some("356 High Street"),
-          supplierAddress2            = Some("Rochdale"),
-          supplierAddress3            = Some("England"),
-          supplierVatRegNumber        = Some("500000881"),
-          supplierTaxIdentifier       = Some(""),
-          invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-          invoiceNumber               = Some("a444"),
-          currencyCode                = Some("EUR"),
-          taxableAmount               = Some(BigDecimal(1000)),
-          vatAmount                   = Some(BigDecimal(99)),
-          deductibleVatAmount         = Some(BigDecimal(40)),
-          updateSequenceNumber        = 1
+          applicationId              = 404,
+          itemNumber                 = 4,
+          goodsDescriptionCode       = "10",
+          goodsDescriptionSubCode    = Some("10.4.1"),
+          goodsDescriptionText       = Some("office stationery and consumables"),
+          simplifiedInvoiceIndicator = Some("false"),
+          supplierName               = Some("Finnish International"),
+          supplierAddress1           = Some("356 High Street"),
+          supplierAddress2           = Some("Rochdale"),
+          supplierAddress3           = Some("England"),
+          supplierVatRegNumber       = Some("500000881"),
+          supplierTaxIdentifier      = Some(""),
+          invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+          invoiceNumber              = Some("a444"),
+          currencyCode               = Some("EUR"),
+          taxableAmount              = Some(BigDecimal(1000)),
+          vatAmount                  = Some(BigDecimal(99)),
+          deductibleVatAmount        = Some(BigDecimal(40)),
+          updateSequenceNumber       = 1
         )
 
         when(mockEuVatService.updatePurchaseDetails(any())).thenReturn(Future.successful(UpdatePurchaseDetailsResponse(2)))
@@ -413,25 +413,25 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         val exception = new RuntimeException("DB error")
         when(mockEuVatService.updatePurchaseDetails(any())).thenReturn(Future.failed(exception))
         val req: UpdatePurchaseDetailsRequest = UpdatePurchaseDetailsRequest(
-          applicationId               = 404,
-          itemNumber                  = 4,
-          goodsDescriptionCategory    = "10",
-          goodsDescriptionSubCategory = Some("10.4.1"),
-          goodsDescriptionText        = Some("office stationery and consumables"),
-          simplifiedInvoiceIndicator  = Some("false"),
-          supplierName                = Some("Finnish International"),
-          supplierAddress1            = Some("356 High Street"),
-          supplierAddress2            = Some("Rochdale"),
-          supplierAddress3            = Some("England"),
-          supplierVatRegNumber        = Some("500000881"),
-          supplierTaxIdentifier       = Some(""),
-          invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-          invoiceNumber               = Some("a444"),
-          currencyCode                = Some("EUR"),
-          taxableAmount               = Some(BigDecimal(1000)),
-          vatAmount                   = Some(BigDecimal(99)),
-          deductibleVatAmount         = Some(BigDecimal(40)),
-          updateSequenceNumber        = 1
+          applicationId              = 404,
+          itemNumber                 = 4,
+          goodsDescriptionCode       = "10",
+          goodsDescriptionSubCode    = Some("10.4.1"),
+          goodsDescriptionText       = Some("office stationery and consumables"),
+          simplifiedInvoiceIndicator = Some("false"),
+          supplierName               = Some("Finnish International"),
+          supplierAddress1           = Some("356 High Street"),
+          supplierAddress2           = Some("Rochdale"),
+          supplierAddress3           = Some("England"),
+          supplierVatRegNumber       = Some("500000881"),
+          supplierTaxIdentifier      = Some(""),
+          invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+          invoiceNumber              = Some("a444"),
+          currencyCode               = Some("EUR"),
+          taxableAmount              = Some(BigDecimal(1000)),
+          vatAmount                  = Some(BigDecimal(99)),
+          deductibleVatAmount        = Some(BigDecimal(40)),
+          updateSequenceNumber       = 1
         )
 
         val result: Future[Result] = controller.updatePurchaseDetails()(
@@ -585,10 +585,10 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
       "return 200 when only the mandatory fields are supplied" in new SetUp {
         val json: JsObject = Json.obj(
-          "applicationId"            -> 404,
-          "itemNumber"               -> 4,
-          "goodsDescriptionCategory" -> "10",
-          "updateSequenceNumber"     -> 1
+          "applicationId"        -> 404,
+          "itemNumber"           -> 4,
+          "goodsDescriptionCode" -> "10",
+          "updateSequenceNumber" -> 1
         )
         when(mockEuVatService.updateImportationDetails(any()))
           .thenReturn(Future.successful(updateImportationDetailsResponse))
@@ -611,7 +611,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
 
       "return 400 when a mandatory field is missing" in new SetUp {
-        val json: JsObject = Json.toJson(updateImportationDetailsRequest).as[JsObject] - "goodsDescriptionCategory"
+        val json: JsObject = Json.toJson(updateImportationDetailsRequest).as[JsObject] - "goodsDescriptionCode"
 
         val result: Future[Result] = controller.updateImportationDetails()(
           fakeRequest.withMethod("PUT").withJsonBody(json)
@@ -922,9 +922,9 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
     val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
       applicationId              = 123456,
-      goodsDescriptionCategory   = "1",
+      goodsDescriptionCode       = "1",
       goodsDescriptionText       = Some("Fuel"),
-      purchaseSubcategory        = None,
+      goodsDescriptionSubCode    = None,
       simplifiedInvoiceIndicator = None,
       supplierName               = None,
       supplierAddress1           = None,
@@ -965,26 +965,26 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     )
 
     val importationDetailsResponse: GetImportationDetailsResponse = GetImportationDetailsResponse(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-      supplierName                = Some("Finnish International"),
-      supplierAddressLine1        = Some("356 High Street"),
-      supplierAddressLine2        = Some("Rochdale"),
-      supplierAddressLine3        = Some("England"),
-      supplierCountryCode         = Some("GB"),
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubcategory = Some("10.4.1"),
-      goodsDescriptionText        = Some(""),
-      hasSadReferenceNumber       = Some("true"),
-      sadReferenceNumber          = Some("SAD123456789"),
-      referenceInformation        = Some("Import declaration reference"),
-      currencyCode                = Some("EUR"),
-      taxableAmount               = Some(BigDecimal(1000)),
-      vatAmount                   = Some(BigDecimal(99)),
-      deductibleVatAmount         = Some(BigDecimal(40)),
-      updateSequenceNumber        = 1,
-      periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+      applicationId           = 404,
+      itemNumber              = 4,
+      issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      supplierName            = Some("Finnish International"),
+      supplierAddressLine1    = Some("356 High Street"),
+      supplierAddressLine2    = Some("Rochdale"),
+      supplierAddressLine3    = Some("England"),
+      supplierCountryCode     = Some("GB"),
+      goodsDescriptionCode    = "10",
+      goodsDescriptionSubCode = Some("10.4.1"),
+      goodsDescriptionText    = Some(""),
+      hasSadReferenceNumber   = Some("true"),
+      sadReferenceNumber      = Some("SAD123456789"),
+      referenceInformation    = Some("Import declaration reference"),
+      currencyCode            = Some("EUR"),
+      taxableAmount           = Some(BigDecimal(1000)),
+      vatAmount               = Some(BigDecimal(99)),
+      deductibleVatAmount     = Some(BigDecimal(40)),
+      updateSequenceNumber    = 1,
+      periodStartDate         = LocalDateTime.of(2026, 1, 1, 0, 0)
     )
 
     val vrnCountRequest: SupplierVrnCountRequest = SupplierVrnCountRequest(
@@ -996,25 +996,25 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
     val vrnCountResponse: SupplierVrnCountResponse = SupplierVrnCountResponse(duplicateCount = 1)
 
     val updateImportationDetailsRequest: UpdateImportDetailsRequest = UpdateImportDetailsRequest(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubCategory = Some("10.4.1"),
-      goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some("true"),
-      sadReferenceNumber          = Some("SAD123456789"),
-      referenceInformation        = Some("Import declaration reference"),
-      supplierName                = Some("Finnish International"),
-      supplierAddressLine1        = Some("356 High Street"),
-      supplierAddressLine2        = Some("Rochdale"),
-      supplierAddressLine3        = Some("England"),
-      supplierCountryCode         = Some("GB"),
-      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-      currencyCode                = Some("EUR"),
-      taxableAmount               = Some(BigDecimal(1000)),
-      vatAmount                   = Some(BigDecimal(99)),
-      deductibleVatAmount         = Some(BigDecimal(40)),
-      updateSequenceNumber        = 1
+      applicationId           = 404,
+      itemNumber              = 4,
+      goodsDescriptionCode    = "10",
+      goodsDescriptionSubCode = Some("10.4.1"),
+      goodsDescriptionText    = Some("office stationery and consumables"),
+      hasSadReferenceNumber   = Some("true"),
+      sadReferenceNumber      = Some("SAD123456789"),
+      referenceInformation    = Some("Import declaration reference"),
+      supplierName            = Some("Finnish International"),
+      supplierAddressLine1    = Some("356 High Street"),
+      supplierAddressLine2    = Some("Rochdale"),
+      supplierAddressLine3    = Some("England"),
+      supplierCountryCode     = Some("GB"),
+      issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode            = Some("EUR"),
+      taxableAmount           = Some(BigDecimal(1000)),
+      vatAmount               = Some(BigDecimal(99)),
+      deductibleVatAmount     = Some(BigDecimal(40)),
+      updateSequenceNumber    = 1
     )
     val updateImportationDetailsResponse: UpdateImportDetailsResponse = UpdateImportDetailsResponse(2)
 

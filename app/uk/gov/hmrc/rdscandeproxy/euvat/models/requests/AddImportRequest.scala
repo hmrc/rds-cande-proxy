@@ -22,9 +22,9 @@ import java.time.LocalDateTime
 
 case class AddImportRequest(
   applicationId: Long,
-  goodsDescriptionCategory: String,
+  goodsDescriptionCode: String,
+  goodsDescriptionSubCode: Option[String] = None,
   goodsDescriptionText: Option[String] = None,
-  importationSubcategory: Option[String] = None,
   hasSadReferenceNumber: Option[String] = None,
   sadReferenceNumber: Option[String] = None,
   supplierAddressLine1: Option[String] = None,

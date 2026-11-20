@@ -193,9 +193,9 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     "return purchase response" in {
       val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
         applicationId              = 123456,
-        goodsDescriptionCategory   = "1",
+        goodsDescriptionCode       = "1",
         goodsDescriptionText       = Some("Fuel"),
-        purchaseSubcategory        = None,
+        goodsDescriptionSubCode    = None,
         simplifiedInvoiceIndicator = None,
         supplierName               = None,
         supplierAddress1           = None,
@@ -225,10 +225,10 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
   "addImportation" should {
     "return import response" in {
       val importRequest: AddImportRequest = AddImportRequest(
-        applicationId            = 123456,
-        goodsDescriptionCategory = "3",
-        goodsDescriptionText     = Some("Electronics"),
-        updateSequenceNumber     = 1
+        applicationId        = 123456,
+        goodsDescriptionCode = "3",
+        goodsDescriptionText = Some("Electronics"),
+        updateSequenceNumber = 1
       )
 
       val importResponse: AddImportResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
@@ -336,26 +336,26 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
       result shouldBe Some(
         GetImportationDetailsResponse(
-          applicationId               = 404,
-          itemNumber                  = 4,
-          issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-          supplierName                = Some("Finnish International"),
-          supplierAddressLine1        = Some("356 High Street"),
-          supplierAddressLine2        = Some("Rochdale"),
-          supplierAddressLine3        = Some("England"),
-          supplierCountryCode         = Some("GB"),
-          goodsDescriptionCategory    = "10",
-          goodsDescriptionSubcategory = Some("10.4.1"),
-          goodsDescriptionText        = Some(""),
-          hasSadReferenceNumber       = Some("true"),
-          sadReferenceNumber          = Some("SAD123456789"),
-          referenceInformation        = Some("Import declaration reference"),
-          currencyCode                = Some("EUR"),
-          taxableAmount               = Some(BigDecimal("1000")),
-          vatAmount                   = Some(BigDecimal("99")),
-          deductibleVatAmount         = Some(BigDecimal("40")),
-          updateSequenceNumber        = 1,
-          periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+          applicationId           = 404,
+          itemNumber              = 4,
+          issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+          supplierName            = Some("Finnish International"),
+          supplierAddressLine1    = Some("356 High Street"),
+          supplierAddressLine2    = Some("Rochdale"),
+          supplierAddressLine3    = Some("England"),
+          supplierCountryCode     = Some("GB"),
+          goodsDescriptionCode    = "10",
+          goodsDescriptionSubCode = Some("10.4.1"),
+          goodsDescriptionText    = Some(""),
+          hasSadReferenceNumber   = Some("true"),
+          sadReferenceNumber      = Some("SAD123456789"),
+          referenceInformation    = Some("Import declaration reference"),
+          currencyCode            = Some("EUR"),
+          taxableAmount           = Some(BigDecimal("1000")),
+          vatAmount               = Some(BigDecimal("99")),
+          deductibleVatAmount     = Some(BigDecimal("40")),
+          updateSequenceNumber    = 1,
+          periodStartDate         = LocalDateTime.of(2026, 1, 1, 0, 0)
         )
       )
     }
@@ -419,25 +419,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
   "updatePurchaseDetails" should {
     "return the updated sequence number from proc" in {
       val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = Some("10.4.1"),
-        goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = Some("10.4.1"),
+        goodsDescriptionText       = Some("office stationery and consumables"),
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
@@ -447,25 +447,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
     "use a single DB connection and call prepareCall for each SP" in {
       val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = Some("10.4.1"),
-        goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = Some("10.4.1"),
+        goodsDescriptionText       = Some("office stationery and consumables"),
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(2)
@@ -485,25 +485,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
     "call prepareCall twice when optional description/subcategory absent" in {
       val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = None,
-        goodsDescriptionText        = None,
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = None,
+        goodsDescriptionText       = None,
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(5)
@@ -516,25 +516,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
     "call prepareCall three times when only description present" in {
       val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = None,
-        goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = None,
+        goodsDescriptionText       = Some("office stationery and consumables"),
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(7)
@@ -554,25 +554,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
     "call prepareCall three times when only subcategory present" in {
       val req = uk.gov.hmrc.rdscandeproxy.euvat.models.requests.UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = Some("10.4.1"),
-        goodsDescriptionText        = None,
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = Some("10.4.1"),
+        goodsDescriptionText       = None,
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(9)
@@ -592,25 +592,25 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
     "rollback the transaction and propagate exception when an intermediate SP fails" in {
       val req = UpdatePurchaseDetailsRequest(
-        applicationId               = 404,
-        itemNumber                  = 4,
-        goodsDescriptionCategory    = "10",
-        goodsDescriptionSubCategory = Some("10.4.1"),
-        goodsDescriptionText        = Some("office stationery and consumables"),
-        simplifiedInvoiceIndicator  = Some("false"),
-        supplierName                = Some("Finnish International"),
-        supplierAddress1            = Some("356 High Street"),
-        supplierAddress2            = Some("Rochdale"),
-        supplierAddress3            = Some("England"),
-        supplierVatRegNumber        = Some("500000881"),
-        supplierTaxIdentifier       = Some(""),
-        invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-        invoiceNumber               = Some("a444"),
-        currencyCode                = Some("EUR"),
-        taxableAmount               = Some(BigDecimal(1000)),
-        vatAmount                   = Some(BigDecimal(99)),
-        deductibleVatAmount         = Some(BigDecimal(40)),
-        updateSequenceNumber        = 1
+        applicationId              = 404,
+        itemNumber                 = 4,
+        goodsDescriptionCode       = "10",
+        goodsDescriptionSubCode    = Some("10.4.1"),
+        goodsDescriptionText       = Some("office stationery and consumables"),
+        simplifiedInvoiceIndicator = Some("false"),
+        supplierName               = Some("Finnish International"),
+        supplierAddress1           = Some("356 High Street"),
+        supplierAddress2           = Some("Rochdale"),
+        supplierAddress3           = Some("England"),
+        supplierVatRegNumber       = Some("500000881"),
+        supplierTaxIdentifier      = Some(""),
+        invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+        invoiceNumber              = Some("a444"),
+        currencyCode               = Some("EUR"),
+        taxableAmount              = Some(BigDecimal(1000)),
+        vatAmount                  = Some(BigDecimal(99)),
+        deductibleVatAmount        = Some(BigDecimal(40)),
+        updateSequenceNumber       = 1
       )
 
       val cs1 = mock(classOf[CallableStatement])
@@ -904,32 +904,32 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
   "updateImportationDetails" should {
     val fullRequest = UpdateImportDetailsRequest(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubCategory = Some("10.4.1"),
-      goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some("true"),
-      sadReferenceNumber          = Some("SAD123456789"),
-      referenceInformation        = Some("Import declaration reference"),
-      supplierName                = Some("Finnish International"),
-      supplierAddressLine1        = Some("356 High Street"),
-      supplierAddressLine2        = Some("Rochdale"),
-      supplierAddressLine3        = Some("England"),
-      supplierCountryCode         = Some("GB"),
-      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-      currencyCode                = Some("EUR"),
-      taxableAmount               = Some(BigDecimal(1000)),
-      vatAmount                   = Some(BigDecimal(99)),
-      deductibleVatAmount         = Some(BigDecimal(40)),
-      updateSequenceNumber        = 1
+      applicationId           = 404,
+      itemNumber              = 4,
+      goodsDescriptionCode    = "10",
+      goodsDescriptionSubCode = Some("10.4.1"),
+      goodsDescriptionText    = Some("office stationery and consumables"),
+      hasSadReferenceNumber   = Some("true"),
+      sadReferenceNumber      = Some("SAD123456789"),
+      referenceInformation    = Some("Import declaration reference"),
+      supplierName            = Some("Finnish International"),
+      supplierAddressLine1    = Some("356 High Street"),
+      supplierAddressLine2    = Some("Rochdale"),
+      supplierAddressLine3    = Some("England"),
+      supplierCountryCode     = Some("GB"),
+      issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode            = Some("EUR"),
+      taxableAmount           = Some(BigDecimal(1000)),
+      vatAmount               = Some(BigDecimal(99)),
+      deductibleVatAmount     = Some(BigDecimal(40)),
+      updateSequenceNumber    = 1
     )
 
     val minimalRequest = UpdateImportDetailsRequest(
-      applicationId            = 404,
-      itemNumber               = 4,
-      goodsDescriptionCategory = "10",
-      updateSequenceNumber     = 1
+      applicationId        = 404,
+      itemNumber           = 4,
+      goodsDescriptionCode = "10",
+      updateSequenceNumber = 1
     )
 
     "return the final update sequence number after chaining all stored procedures" in {

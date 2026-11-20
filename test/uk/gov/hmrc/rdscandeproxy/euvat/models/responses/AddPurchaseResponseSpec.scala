@@ -19,7 +19,6 @@ package uk.gov.hmrc.rdscandeproxy.euvat.models.responses
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
-import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.AddPurchaseResponse
 
 class AddPurchaseResponseSpec extends AnyWordSpec with Matchers {
 
