@@ -966,7 +966,6 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
-
   def addAttachment(request: AddAttachmentRequest): Future[AddAttachmentResponse] = {
     logger.info(s"Calling stored procedure addAttachment for applicationId: ${request.applicationId}")
 

@@ -1247,7 +1247,6 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
     }
   }
 
-
   "addAttachment" should {
 
     val fileContent = Array[Byte](1, 2, 3, 4, 5)
