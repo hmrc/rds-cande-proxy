@@ -1257,7 +1257,7 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       fileName             = "invoice.pdf",
       fileType             = "application/pdf",
       fileDescription      = Some("Supporting invoice"),
-      fileSize             = fileContent.length.toLong,
+      fileSize             = fileContent.length,
       fileContent          = fileContent,
       updateSequenceNumber = 1
     )
@@ -1301,9 +1301,9 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
         "Supporting invoice"
       )
 
-      verify(mockCallableStatement).setLong(
+      verify(mockCallableStatement).setInt(
         "p_file_size",
-        5L
+        5
       )
 
       verify(mockCallableStatement).setInt(

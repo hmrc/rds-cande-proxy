@@ -998,7 +998,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
             request.fileDescription.orNull
           )
 
-          storedProcedure.setLong(
+          storedProcedure.setInt(
             "p_file_size",
             request.fileSize
           )

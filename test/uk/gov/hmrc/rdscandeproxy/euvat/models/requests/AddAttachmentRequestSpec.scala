@@ -30,7 +30,7 @@ class AddAttachmentRequestSpec extends AnyWordSpec with Matchers {
     fileName             = "invoice.pdf",
     fileType             = "application/pdf",
     fileDescription      = Some("Supporting invoice"),
-    fileSize             = 5L,
+    fileSize             = 5,
     fileContent          = fileContent,
     updateSequenceNumber = 1
   )

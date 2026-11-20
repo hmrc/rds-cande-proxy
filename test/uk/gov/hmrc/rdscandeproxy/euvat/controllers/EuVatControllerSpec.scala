@@ -1109,7 +1109,7 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
         fileName             = "invoice.pdf",
         fileType             = "application/pdf",
         fileDescription      = Some("Supporting invoice"),
-        fileSize             = 5L,
+        fileSize             = 5,
         fileContent          = Array[Byte](1, 2, 3, 4, 5),
         updateSequenceNumber = 1
       )
