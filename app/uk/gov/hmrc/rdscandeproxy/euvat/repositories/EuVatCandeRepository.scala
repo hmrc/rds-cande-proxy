@@ -966,4 +966,71 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  def addAttachment(request: AddAttachmentRequest): Future[AddAttachmentResponse] = {
+    logger.info(s"Calling stored procedure addAttachment for applicationId: ${request.applicationId}")
+
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall(
+            "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addAttachment(?, ?, ?, ?, ?, ?, ?, ?)}"
+          )
+        ) { storedProcedure =>
+
+          storedProcedure.setLong(
+            "p_application_id",
+            request.applicationId
+          )
+
+          storedProcedure.setString(
+            "p_file_name",
+            request.fileName
+          )
+
+          storedProcedure.setString(
+            "p_file_type",
+            request.fileType
+          )
+
+          storedProcedure.setString(
+            "p_file_description",
+            request.fileDescription.orNull
+          )
+
+          storedProcedure.setInt(
+            "p_file_size",
+            request.fileSize
+          )
+
+          storedProcedure.setBytes(
+            "p_file_content",
+            request.fileContent
+          )
+
+          // IN OUT parameter
+          storedProcedure.setInt(
+            "p_update_seq_number",
+            request.updateSequenceNumber
+          )
+          storedProcedure.registerOutParameter(
+            "p_update_seq_number",
+            OracleTypes.NUMBER
+          )
+
+          // OUT parameter
+          storedProcedure.registerOutParameter(
+            "p_attachment_number",
+            OracleTypes.NUMBER
+          )
+
+          storedProcedure.execute()
+
+          AddAttachmentResponse(
+            attachmentNumber     = storedProcedure.getInt("p_attachment_number"),
+            updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          )
+        }
+      }
+    }
+  }
 }
