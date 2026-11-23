@@ -114,9 +114,9 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
   "EuVatService.addPurchase" should {
     val purchaseRequest: AddPurchaseRequest = AddPurchaseRequest(
       applicationId              = 123456,
-      goodsDescriptionCategory   = "1",
+      goodsDescriptionCode       = "1",
       goodsDescriptionText       = Some("Fuel"),
-      purchaseSubcategory        = None,
+      goodsDescriptionSubCode    = None,
       simplifiedInvoiceIndicator = None,
       supplierName               = None,
       supplierAddress1           = None,
@@ -152,10 +152,10 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
 
   "EuVatService.addImport" should {
     val importRequest: AddImportRequest = AddImportRequest(
-      applicationId            = 123456,
-      goodsDescriptionCategory = "3",
-      goodsDescriptionText     = Some("Electronics"),
-      updateSequenceNumber     = 1
+      applicationId        = 123456,
+      goodsDescriptionCode = "3",
+      goodsDescriptionText = Some("Electronics"),
+      updateSequenceNumber = 1
     )
 
     val importResponse: AddImportResponse = AddImportResponse(itemNumber = 4, updateSequenceNumber = 1)
@@ -221,26 +221,26 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
     val importationRequest: GetImportationDetailsRequest = GetImportationDetailsRequest(applicationId = 404, itemNumber = 4)
 
     val importationResponse: GetImportationDetailsResponse = GetImportationDetailsResponse(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      issuingDate                 = None,
-      supplierName                = None,
-      supplierAddressLine1        = None,
-      supplierAddressLine2        = None,
-      supplierAddressLine3        = None,
-      supplierCountryCode         = None,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubcategory = None,
-      goodsDescriptionText        = None,
-      hasSadReferenceNumber       = None,
-      sadReferenceNumber          = None,
-      referenceInformation        = None,
-      currencyCode                = None,
-      taxableAmount               = None,
-      vatAmount                   = None,
-      deductibleVatAmount         = None,
-      updateSequenceNumber        = 1,
-      periodStartDate             = LocalDateTime.of(2026, 1, 1, 0, 0)
+      applicationId           = 404,
+      itemNumber              = 4,
+      issuingDate             = None,
+      supplierName            = None,
+      supplierAddressLine1    = None,
+      supplierAddressLine2    = None,
+      supplierAddressLine3    = None,
+      supplierCountryCode     = None,
+      goodsDescriptionCode    = "10",
+      goodsDescriptionSubCode = None,
+      goodsDescriptionText    = None,
+      hasSadReferenceNumber   = None,
+      sadReferenceNumber      = None,
+      referenceInformation    = None,
+      currencyCode            = None,
+      taxableAmount           = None,
+      vatAmount               = None,
+      deductibleVatAmount     = None,
+      updateSequenceNumber    = 1,
+      periodStartDate         = LocalDateTime.of(2026, 1, 1, 0, 0)
     )
 
     "succeed" when:
@@ -311,25 +311,25 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
 
   "EuVatService.updatePurchaseDetails" should {
     val req = UpdatePurchaseDetailsRequest(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubCategory = Some("10.4.1"),
-      goodsDescriptionText        = Some("office stationery and consumables"),
-      simplifiedInvoiceIndicator  = Some("false"),
-      supplierName                = Some("Finnish International"),
-      supplierAddress1            = Some("356 High Street"),
-      supplierAddress2            = Some("Rochdale"),
-      supplierAddress3            = Some("England"),
-      supplierVatRegNumber        = Some("500000881"),
-      supplierTaxIdentifier       = Some(""),
-      invoiceDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-      invoiceNumber               = Some("a444"),
-      currencyCode                = Some("EUR"),
-      taxableAmount               = Some(BigDecimal(1000)),
-      vatAmount                   = Some(BigDecimal(99)),
-      deductibleVatAmount         = Some(BigDecimal(40)),
-      updateSequenceNumber        = 1
+      applicationId              = 404,
+      itemNumber                 = 4,
+      goodsDescriptionCode       = "10",
+      goodsDescriptionSubCode    = Some("10.4.1"),
+      goodsDescriptionText       = Some("office stationery and consumables"),
+      simplifiedInvoiceIndicator = Some("false"),
+      supplierName               = Some("Finnish International"),
+      supplierAddress1           = Some("356 High Street"),
+      supplierAddress2           = Some("Rochdale"),
+      supplierAddress3           = Some("England"),
+      supplierVatRegNumber       = Some("500000881"),
+      supplierTaxIdentifier      = Some(""),
+      invoiceDate                = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      invoiceNumber              = Some("a444"),
+      currencyCode               = Some("EUR"),
+      taxableAmount              = Some(BigDecimal(1000)),
+      vatAmount                  = Some(BigDecimal(99)),
+      deductibleVatAmount        = Some(BigDecimal(40)),
+      updateSequenceNumber       = 1
     )
 
     "succeed" in {
@@ -416,25 +416,25 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
 
   "EuVatService.updateImportationDetails" should {
     val req = UpdateImportDetailsRequest(
-      applicationId               = 404,
-      itemNumber                  = 4,
-      goodsDescriptionCategory    = "10",
-      goodsDescriptionSubCategory = Some("10.4.1"),
-      goodsDescriptionText        = Some("office stationery and consumables"),
-      hasSadReferenceNumber       = Some("true"),
-      sadReferenceNumber          = Some("SAD123456789"),
-      referenceInformation        = Some("Import declaration reference"),
-      supplierName                = Some("Finnish International"),
-      supplierAddressLine1        = Some("356 High Street"),
-      supplierAddressLine2        = Some("Rochdale"),
-      supplierAddressLine3        = Some("England"),
-      supplierCountryCode         = Some("GB"),
-      issuingDate                 = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
-      currencyCode                = Some("EUR"),
-      taxableAmount               = Some(BigDecimal(1000)),
-      vatAmount                   = Some(BigDecimal(99)),
-      deductibleVatAmount         = Some(BigDecimal(40)),
-      updateSequenceNumber        = 1
+      applicationId           = 404,
+      itemNumber              = 4,
+      goodsDescriptionCode    = "10",
+      goodsDescriptionSubCode = Some("10.4.1"),
+      goodsDescriptionText    = Some("office stationery and consumables"),
+      hasSadReferenceNumber   = Some("true"),
+      sadReferenceNumber      = Some("SAD123456789"),
+      referenceInformation    = Some("Import declaration reference"),
+      supplierName            = Some("Finnish International"),
+      supplierAddressLine1    = Some("356 High Street"),
+      supplierAddressLine2    = Some("Rochdale"),
+      supplierAddressLine3    = Some("England"),
+      supplierCountryCode     = Some("GB"),
+      issuingDate             = Some(LocalDateTime.of(2026, 5, 14, 0, 0)),
+      currencyCode            = Some("EUR"),
+      taxableAmount           = Some(BigDecimal(1000)),
+      vatAmount               = Some(BigDecimal(99)),
+      deductibleVatAmount     = Some(BigDecimal(40)),
+      updateSequenceNumber    = 1
     )
 
     "succeed" in {
@@ -645,6 +645,43 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
       val result = intercept[Exception](service.deleteAttachment(req).futureValue)
       result.getMessage should include("bang")
     }
+  }
+
+  "EuVatService.addAttachment" should {
+
+    val attachmentRequest = AddAttachmentRequest(
+      applicationId        = 123456L,
+      fileName             = "invoice.pdf",
+      fileType             = "application/pdf",
+      fileDescription      = Some("Supporting invoice"),
+      fileSize             = 5,
+      fileContent          = Array[Byte](1, 2, 3, 4, 5),
+      updateSequenceNumber = 1
+    )
+
+    val attachmentResponse = AddAttachmentResponse(
+      attachmentNumber     = 4,
+      updateSequenceNumber = 2
+    )
+
+    "succeed" when:
+      "adding an attachment to the database" in:
+        when(mockConnector.addAttachment(any()))
+          .thenReturn(Future.successful(attachmentResponse))
+
+        val result = service.addAttachment(attachmentRequest).futureValue
+
+        result shouldBe attachmentResponse
+
+    "fail" when:
+      "saving the attachment to the database" in:
+        when(mockConnector.addAttachment(any()))
+          .thenReturn(Future.failed(new Exception("bang")))
+
+        val result =
+          intercept[Exception](service.addAttachment(attachmentRequest).futureValue)
+
+        result.getMessage should include("bang")
   }
 
 }

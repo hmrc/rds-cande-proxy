@@ -38,6 +38,9 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def addImport(importRequest: AddImportRequest): Future[AddImportResponse] =
     euvatCandeRepository.addImportation(importRequest)
 
+  def addAttachment(request: AddAttachmentRequest): Future[AddAttachmentResponse] =
+    euvatCandeRepository.addAttachment(request)
+
   def getPurchaseDetails(request: GetPurchaseDetailsRequest): Future[Option[GetPurchaseDetailsResponse]] =
     euvatCandeRepository.getPurchaseDetails(request)
 

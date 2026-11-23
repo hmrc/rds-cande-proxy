@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.rdscandeproxy.euvat.models.requests
+package uk.gov.hmrc.rdscandeproxy.euvat.models.responses
 
 import play.api.libs.json.{Json, OFormat}
 

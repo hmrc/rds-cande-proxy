@@ -183,12 +183,12 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addImportation(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
           storedProcedure =>
             storedProcedure.setLong("p_application_id", request.applicationId)
-            storedProcedure.setString("p_goods_description_category", request.goodsDescriptionCategory)
+            storedProcedure.setString("p_goods_description_category", request.goodsDescriptionCode)
             request.goodsDescriptionText match {
               case Some(t) => storedProcedure.setString("p_goods_description_text", t)
               case None    => storedProcedure.setNull("p_goods_description_text", OracleTypes.VARCHAR)
             }
-            request.importationSubcategory match {
+            request.goodsDescriptionSubCode match {
               case Some(s) => storedProcedure.setString("p_importation_subcategory", s)
               case None    => storedProcedure.setNull("p_importation_subcategory", OracleTypes.VARCHAR)
             }
@@ -357,26 +357,26 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
             if (cursor.next()) {
               Some(
                 GetImportationDetailsResponse(
-                  applicationId               = cursor.getLong("application_id"),
-                  itemNumber                  = cursor.getInt("item_number"),
-                  issuingDate                 = Option(cursor.getTimestamp("issuing_date")).map(_.toLocalDateTime),
-                  supplierName                = Option(cursor.getString("supplier_name")),
-                  supplierAddressLine1        = Option(cursor.getString("supplier_address_1")),
-                  supplierAddressLine2        = Option(cursor.getString("supplier_address_2")),
-                  supplierAddressLine3        = Option(cursor.getString("supplier_address_3")),
-                  supplierCountryCode         = Option(cursor.getString("supplier_country_code")),
-                  goodsDescriptionCategory    = cursor.getString("goods_description_category"),
-                  goodsDescriptionSubcategory = Option(cursor.getString("goods_description_subcategory")),
-                  goodsDescriptionText        = Option(cursor.getString("goods_description_text")),
-                  hasSadReferenceNumber       = Option(cursor.getString("has_sad_reference_number")),
-                  sadReferenceNumber          = Option(cursor.getString("sad_reference_number")),
-                  referenceInformation        = Option(cursor.getString("reference_information")),
-                  currencyCode                = Option(cursor.getString("currency_code")),
-                  taxableAmount               = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)),
-                  vatAmount                   = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)),
-                  deductibleVatAmount         = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)),
-                  updateSequenceNumber        = updateSequenceNumber,
-                  periodStartDate             = periodStartDate
+                  applicationId           = cursor.getLong("application_id"),
+                  itemNumber              = cursor.getInt("item_number"),
+                  issuingDate             = Option(cursor.getTimestamp("issuing_date")).map(_.toLocalDateTime),
+                  supplierName            = Option(cursor.getString("supplier_name")),
+                  supplierAddressLine1    = Option(cursor.getString("supplier_address_1")),
+                  supplierAddressLine2    = Option(cursor.getString("supplier_address_2")),
+                  supplierAddressLine3    = Option(cursor.getString("supplier_address_3")),
+                  supplierCountryCode     = Option(cursor.getString("supplier_country_code")),
+                  goodsDescriptionCode    = cursor.getString("goods_description_category"),
+                  goodsDescriptionSubCode = Option(cursor.getString("goods_description_subcategory")),
+                  goodsDescriptionText    = Option(cursor.getString("goods_description_text")),
+                  hasSadReferenceNumber   = Option(cursor.getString("has_sad_reference_number")),
+                  sadReferenceNumber      = Option(cursor.getString("sad_reference_number")),
+                  referenceInformation    = Option(cursor.getString("reference_information")),
+                  currencyCode            = Option(cursor.getString("currency_code")),
+                  taxableAmount           = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)),
+                  vatAmount               = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)),
+                  deductibleVatAmount     = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)),
+                  updateSequenceNumber    = updateSequenceNumber,
+                  periodStartDate         = periodStartDate
                 )
               )
             } else {
@@ -395,9 +395,9 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addPurchase(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) { stmt =>
           // Set input parameters
           stmt.setLong("p_application_id", request.applicationId)
-          stmt.setString("p_goods_description_category", request.goodsDescriptionCategory)
+          stmt.setString("p_goods_description_category", request.goodsDescriptionCode)
           stmt.setString("p_goods_description_text", request.goodsDescriptionText.orNull)
-          stmt.setString("p_purchase_subcategory", request.purchaseSubcategory.orNull)
+          stmt.setString("p_purchase_subcategory", request.goodsDescriptionSubCode.orNull)
           stmt.setString("p_simplified_invoice_indicator", request.simplifiedInvoiceIndicator.orNull)
           stmt.setString("p_supplier_name", request.supplierName.orNull)
           stmt.setString("p_supplier_address_1", request.supplierAddress1.orNull)
@@ -544,7 +544,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           connection,
           request.applicationId,
           request.itemNumber,
-          request.goodsDescriptionCategory,
+          request.goodsDescriptionCode,
           request.updateSequenceNumber
         )
 
@@ -552,7 +552,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           connection,
           request.applicationId,
           request.itemNumber,
-          request.goodsDescriptionSubCategory,
+          request.goodsDescriptionSubCode,
           updateSequenceAfterCategoryUpdate
         )
 
@@ -668,7 +668,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           connection,
           request.applicationId,
           request.itemNumber,
-          request.goodsDescriptionCategory,
+          request.goodsDescriptionCode,
           request.updateSequenceNumber
         )
 
@@ -676,7 +676,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           updateImportationSubCategory(connection,
                                        request.applicationId,
                                        request.itemNumber,
-                                       request.goodsDescriptionSubCategory,
+                                       request.goodsDescriptionSubCode,
                                        updateSequenceAfterCategoryUpdate
                                       )
 
@@ -720,14 +720,14 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
               .takeWhile(identity)
               .map(_ =>
                 PurchaseImport(
-                  itemNumber                  = cursor.getInt("item_number"),
-                  itemType                    = cursor.getString("item_type"),
-                  goodsDescriptionCategory    = cursor.getString("goods_description_category"),
-                  goodsDescriptionSubCategory = Option(cursor.getString("goods_description_subcategory")),
-                  currencyCode                = cursor.getString("currency_code"),
-                  taxableAmount               = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
-                  vatAmount                   = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
-                  deductibleVatAmount         = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0))
+                  itemNumber              = cursor.getInt("item_number"),
+                  itemType                = cursor.getString("item_type"),
+                  goodsDescriptionCode    = cursor.getString("goods_description_category"),
+                  goodsDescriptionSubCode = Option(cursor.getString("goods_description_subcategory")),
+                  currencyCode            = cursor.getString("currency_code"),
+                  taxableAmount           = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
+                  vatAmount               = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0)),
+                  deductibleVatAmount     = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_)).getOrElse(BigDecimal(0))
                 )
               )
               .toList
@@ -1051,4 +1051,71 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
     }
   }
 
+  def addAttachment(request: AddAttachmentRequest): Future[AddAttachmentResponse] = {
+    logger.info(s"Calling stored procedure addAttachment for applicationId: ${request.applicationId}")
+
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall(
+            "{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addAttachment(?, ?, ?, ?, ?, ?, ?, ?)}"
+          )
+        ) { storedProcedure =>
+
+          storedProcedure.setLong(
+            "p_application_id",
+            request.applicationId
+          )
+
+          storedProcedure.setString(
+            "p_file_name",
+            request.fileName
+          )
+
+          storedProcedure.setString(
+            "p_file_type",
+            request.fileType
+          )
+
+          storedProcedure.setString(
+            "p_file_description",
+            request.fileDescription.orNull
+          )
+
+          storedProcedure.setInt(
+            "p_file_size",
+            request.fileSize
+          )
+
+          storedProcedure.setBytes(
+            "p_file_content",
+            request.fileContent
+          )
+
+          // IN OUT parameter
+          storedProcedure.setInt(
+            "p_update_seq_number",
+            request.updateSequenceNumber
+          )
+          storedProcedure.registerOutParameter(
+            "p_update_seq_number",
+            OracleTypes.NUMBER
+          )
+
+          // OUT parameter
+          storedProcedure.registerOutParameter(
+            "p_attachment_number",
+            OracleTypes.NUMBER
+          )
+
+          storedProcedure.execute()
+
+          AddAttachmentResponse(
+            attachmentNumber     = storedProcedure.getInt("p_attachment_number"),
+            updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          )
+        }
+      }
+    }
+  }
 }
