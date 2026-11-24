@@ -96,6 +96,12 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
   def getAttachmentDetails(request: GetAttachmentDetailsRequest): Future[Option[GetAttachmentDetailsResponse]] =
     euvatCandeRepository.getAttachmentDetails(request)
 
+  def getAllAttachments(request: GetAllAttachmentsRequest): Future[GetAllAttachmentsResponse] =
+    euvatCandeRepository.getAllAttachments(request)
+
+  def getFullAttachmentDetails(request: GetFullAttachmentDetailsRequest): Future[Option[GetFullAttachmentDetailsResponse]] =
+    euvatCandeRepository.getFullAttachmentDetails(request)
+
   def deleteAttachment(request: DeleteAttachmentRequest): Future[DeleteAttachmentResponse] =
     euvatCandeRepository
       .deleteAttachment(request)

@@ -19,12 +19,13 @@ package uk.gov.hmrc.rdscandeproxy.euvat.repositories
 import oracle.jdbc.OracleTypes
 import play.api.Logging
 import play.api.db.{Database, NamedDatabase}
-import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
+import uk.gov.hmrc.rdscandeproxy.euvat.models.{Attachment, PurchaseImport}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
 import java.sql.{Connection, ResultSet}
 import java.time.LocalDateTime
+import java.util.Base64
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Using
@@ -120,7 +121,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
   }
 
   def addApplication(applicationRequest: ApplicationRequest, vrn: String): Future[ApplicationResponse] = {
-    logger.info(s"************* calling stored procedure to create application for VRN: $vrn")
+    logger.info(s"Calling stored procedure to create application for VRN: $vrn")
     Future {
       db.withConnection { connection =>
         Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_UPDATE.addApplication(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
@@ -939,6 +940,90 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
                 fileType             = Option(cursor.getString("file_type")),
                 fileDescription      = Option(cursor.getString("file_description")),
                 fileSize             = Option(cursor.getInt("file_size")),
+                updateSequenceNumber = updateSequenceNumber
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def getAllAttachments(request: GetAllAttachmentsRequest): Future[GetAllAttachmentsResponse] = {
+    logger.info(s"Calling stored procedure getAllAttachments for applicationId: ${request.applicationId}")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getAllAttachments(?, ?, ?, ?, ?, ? ,?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_order_by", request.orderBy.getOrElse(0))
+          storedProcedure.setString("p_sort_order", request.sortOrder.getOrElse("ASC"))
+          storedProcedure.setInt("p_start_at", request.startAt.getOrElse(0))
+          storedProcedure.setInt("p_max_number", request.maxNumber.getOrElse(10))
+
+          storedProcedure.registerOutParameter("p_attachments", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_total_attachments", OracleTypes.NUMBER)
+
+          storedProcedure.execute()
+
+          val totalAttachments = storedProcedure.getInt("p_total_attachments")
+          val rs = storedProcedure.getObject("p_attachments", classOf[ResultSet])
+
+          val attachments: List[Attachment] = Using.resource(rs) { cursor =>
+            Iterator
+              .continually(cursor.next())
+              .takeWhile(identity)
+              .map(_ =>
+                Attachment(
+                  attachmentNumber = cursor.getInt("attachment_number"),
+                  fileName         = Option(cursor.getString("file_name")),
+                  fileType         = Option(cursor.getString("file_type")),
+                  fileDescription  = Option(cursor.getString("file_description")),
+                  fileSize         = Option(cursor.getObject("file_size")).map(_ => cursor.getInt("file_size"))
+                )
+              )
+              .toList
+          }
+          logger.info(
+            s"Response stored procedure getAllAttachments for response attachments: $attachments and  totalAttachments: " +
+              s"$totalAttachments"
+          )
+
+          GetAllAttachmentsResponse(attachments = attachments, totalAttachments = totalAttachments)
+        }
+      }
+    }
+  }
+
+  def getFullAttachmentDetails(request: GetFullAttachmentDetailsRequest): Future[Option[GetFullAttachmentDetailsResponse]] = {
+    logger.info(
+      s"Calling stored procedure getFullAttachment for applicationId: ${request.applicationId} attachmentNumber: ${request.attachmentNumber}"
+    )
+    Future {
+      db.withConnection { connection =>
+        Using.resource(connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getFullAttachment(?, ?, ?, ?)}")) { storedProcedure =>
+
+          storedProcedure.setLong("p_application_id", request.applicationId)
+          storedProcedure.setInt("p_attachment_number", request.attachmentNumber)
+
+          storedProcedure.registerOutParameter("p_attachment", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+
+          storedProcedure.execute()
+
+          val updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          val rs = storedProcedure.getObject("p_attachment", classOf[ResultSet])
+
+          Using.resource(rs) { cursor =>
+            Option.when(cursor.next()) {
+              GetFullAttachmentDetailsResponse(
+                attachmentNumber     = cursor.getInt("attachment_number"),
+                fileName             = Option(cursor.getString("file_name")),
+                fileType             = Option(cursor.getString("file_type")),
+                fileDescription      = Option(cursor.getString("file_description")),
+                fileSize             = Option(cursor.getBigDecimal("file_size")).map(_.intValue),
+                fileContent          = Option(cursor.getBytes("file_content")).map(Base64.getEncoder.encodeToString),
                 updateSequenceNumber = updateSequenceNumber
               )
             }

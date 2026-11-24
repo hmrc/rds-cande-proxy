@@ -291,6 +291,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getAllAttachments: Action[AnyContent] =
+    authorise.async { implicit request =>
+      request.body.asJson.flatMap(_.asOpt[GetAllAttachmentsRequest]) match {
+        case None =>
+          logger.warn("Invalid JSON for GetAllAttachmentsRequest")
+          Future.successful(BadRequest("Invalid request body"))
+        case Some(req) =>
+          euVatService
+            .getAllAttachments(req)
+            .map { response =>
+              Ok(Json.toJson(response))
+            }
+            .recover { case ex: Exception =>
+              logger.error(s"Error while retrieving attachments for Application ID  ${req.applicationId}", ex)
+              InternalServerError("Failed to retrieve attachments")
+            }
+      }
+    }
+
   def updateApplicationDetails: Action[AnyContent] =
     authorise.async { implicit request =>
       request.body.asJson.flatMap(_.asOpt[UpdateApplicationDetailsRequest]) match {
@@ -420,6 +439,25 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
             ex
           )
           InternalServerError("Failed to retrieve attachment details")
+        }
+    }
+
+  def getFullAttachmentDetails(applicationId: Long, attachmentNumber: Int): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getFullAttachmentDetails(GetFullAttachmentDetailsRequest(applicationId, attachmentNumber))
+        .map {
+          case Some(response) => Ok(Json.toJson(response))
+          case None =>
+            logger.error(s"No full attachment record for applicationId $applicationId attachmentNumber $attachmentNumber")
+            InternalServerError("Failed to retrieve full attachment details")
+        }
+        .recover { case ex: Exception =>
+          logger.error(
+            s"Error while retrieving the full attachment details for application $applicationId, attachmentNumber $attachmentNumber from oracle database",
+            ex
+          )
+          InternalServerError("Failed to retrieve full attachment details")
         }
     }
 

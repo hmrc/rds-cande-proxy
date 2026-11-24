@@ -26,11 +26,13 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.db.Database
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.rdscandeproxy.euvat.models.Attachment
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 
-import java.sql.{CallableStatement, Connection, ResultSet}
+import java.sql.{CallableStatement, Connection, ResultSet, SQLException}
 import java.time.LocalDateTime
+import java.util.Base64
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndAfter {
@@ -1217,6 +1219,163 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
 
       val result = repository.getAttachmentDetails(request).futureValue
       result shouldBe None
+    }
+  }
+
+  "getFullAttachmentDetails" should {
+    "return the full attachment record with Base64 file content and the update sequence number" in {
+      val request = GetFullAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 4)
+      val fileBytes = "test file content".getBytes("UTF-8")
+
+      when(mockCallableStatement.getObject("p_attachment", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(10)
+
+      when(mockResultSet.next()).thenReturn(true, false)
+      when(mockResultSet.getInt("attachment_number")).thenReturn(4)
+      when(mockResultSet.getString("file_name")).thenReturn("test.pdf")
+      when(mockResultSet.getString("file_type")).thenReturn("pdf")
+      when(mockResultSet.getString("file_description")).thenReturn("pdf file attached")
+      when(mockResultSet.getBigDecimal("file_size")).thenReturn(new java.math.BigDecimal(42))
+      when(mockResultSet.getBytes("file_content")).thenReturn(fileBytes)
+
+      val result = repository.getFullAttachmentDetails(request).futureValue
+
+      result shouldBe Some(
+        GetFullAttachmentDetailsResponse(
+          attachmentNumber     = 4,
+          fileName             = Some("test.pdf"),
+          fileType             = Some("pdf"),
+          fileDescription      = Some("pdf file attached"),
+          fileSize             = Some(42),
+          fileContent          = Some(Base64.getEncoder.encodeToString(fileBytes)),
+          updateSequenceNumber = 10
+        )
+      )
+
+      verify(mockConnection).prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getFullAttachment(?, ?, ?, ?)}")
+      verify(mockCallableStatement).setLong("p_application_id", 404L)
+      verify(mockCallableStatement).setInt("p_attachment_number", 4)
+      verify(mockCallableStatement).registerOutParameter("p_attachment", OracleTypes.CURSOR)
+      verify(mockCallableStatement).registerOutParameter("p_update_seq_number", OracleTypes.NUMBER)
+      verify(mockResultSet).close()
+    }
+
+    "return None for fileSize and fileContent when the columns are null" in {
+      val request = GetFullAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 4)
+
+      when(mockCallableStatement.getObject("p_attachment", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(10)
+
+      when(mockResultSet.next()).thenReturn(true, false)
+      when(mockResultSet.getInt("attachment_number")).thenReturn(4)
+      when(mockResultSet.getBigDecimal("file_size")).thenReturn(null)
+      when(mockResultSet.getBytes("file_content")).thenReturn(null)
+
+      val result = repository.getFullAttachmentDetails(request).futureValue
+
+      result.flatMap(_.fileSize)    shouldBe None
+      result.flatMap(_.fileContent) shouldBe None
+    }
+
+    "return None when the cursor holds no attachment record" in {
+      val request = GetFullAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 99)
+
+      when(mockCallableStatement.getObject("p_attachment", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_update_seq_number")).thenReturn(10)
+      when(mockResultSet.next()).thenReturn(false)
+
+      repository.getFullAttachmentDetails(request).futureValue shouldBe None
+    }
+
+    "propagate exception when stored procedure fails" in {
+      val request = GetFullAttachmentDetailsRequest(applicationId = 404L, attachmentNumber = 4)
+
+      when(mockCallableStatement.execute()).thenThrow(new java.sql.SQLException("SP failure"))
+
+      val thrown = intercept[Exception](repository.getFullAttachmentDetails(request).futureValue)
+      thrown.getMessage should include("SP failure")
+    }
+  }
+
+  "getAllAttachments" should {
+    "return the attachment records and the total attachments" in {
+      val request = GetAllAttachmentsRequest(applicationId = 104L)
+
+      when(mockCallableStatement.getObject("p_attachments", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_total_attachments")).thenReturn(2)
+
+      when(mockResultSet.next()).thenReturn(true, true, false)
+      when(mockResultSet.getInt("attachment_number")).thenReturn(1, 2)
+      when(mockResultSet.getString("file_name")).thenReturn("hotel-invoice.pdf", "fuel-receipt.jpg")
+      when(mockResultSet.getString("file_type")).thenReturn("pdf", "jpg")
+      when(mockResultSet.getString("file_description")).thenReturn("Hotel invoice", null)
+      when(mockResultSet.getObject("file_size")).thenReturn(Integer.valueOf(1825), null)
+      when(mockResultSet.getInt("file_size")).thenReturn(1825)
+
+      val result = repository.getAllAttachments(request).futureValue
+
+      result shouldBe GetAllAttachmentsResponse(
+        attachments = List(
+          Attachment(1, Some("hotel-invoice.pdf"), Some("pdf"), Some("Hotel invoice"), Some(1825)),
+          Attachment(2, Some("fuel-receipt.jpg"), Some("jpg"), None, None)
+        ),
+        totalAttachments = 2
+      )
+    }
+
+    "return an empty list when the cursor holds no attachment records" in {
+      val request = GetAllAttachmentsRequest(applicationId = 104L)
+
+      when(mockCallableStatement.getObject("p_attachments", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockCallableStatement.getInt("p_total_attachments")).thenReturn(0)
+      when(mockResultSet.next()).thenReturn(false)
+
+      repository.getAllAttachments(request).futureValue shouldBe GetAllAttachmentsResponse(Nil, 0)
+    }
+
+    "use the default paging and sorting values when they are not supplied" in {
+      val request = GetAllAttachmentsRequest(applicationId = 104L)
+
+      when(mockCallableStatement.getObject("p_attachments", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockResultSet.next()).thenReturn(false)
+
+      repository.getAllAttachments(request).futureValue
+
+      verify(mockCallableStatement).setLong("p_application_id", 104L)
+      verify(mockCallableStatement).setInt("p_order_by", 0)
+      verify(mockCallableStatement).setString("p_sort_order", "ASC")
+      verify(mockCallableStatement).setInt("p_start_at", 0)
+      verify(mockCallableStatement).setInt("p_max_number", 10)
+      verify(mockCallableStatement).registerOutParameter("p_attachments", OracleTypes.CURSOR)
+      verify(mockCallableStatement).registerOutParameter("p_total_attachments", OracleTypes.NUMBER)
+    }
+
+    "pass the supplied paging and sorting values to the stored procedure" in {
+      val request = GetAllAttachmentsRequest(
+        applicationId = 104L,
+        orderBy       = Some(1),
+        sortOrder     = Some("DESC"),
+        startAt       = Some(10),
+        maxNumber     = Some(5)
+      )
+
+      when(mockCallableStatement.getObject("p_attachments", classOf[ResultSet])).thenReturn(mockResultSet)
+      when(mockResultSet.next()).thenReturn(false)
+
+      repository.getAllAttachments(request).futureValue
+
+      verify(mockCallableStatement).setInt("p_order_by", 1)
+      verify(mockCallableStatement).setString("p_sort_order", "DESC")
+      verify(mockCallableStatement).setInt("p_start_at", 10)
+      verify(mockCallableStatement).setInt("p_max_number", 5)
+    }
+
+    "fail when the stored procedure call throws" in {
+      val request = GetAllAttachmentsRequest(applicationId = 104L)
+
+      when(mockCallableStatement.execute()).thenThrow(new SQLException("ORA-06550"))
+
+      repository.getAllAttachments(request).failed.futureValue shouldBe a[SQLException]
     }
   }
 

@@ -27,7 +27,7 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers.*
 import uk.gov.hmrc.rdscandeproxy.euvat.base.SpecBase
-import uk.gov.hmrc.rdscandeproxy.euvat.models.PurchaseImport
+import uk.gov.hmrc.rdscandeproxy.euvat.models.{Attachment, PurchaseImport}
 import uk.gov.hmrc.rdscandeproxy.euvat.models.requests.*
 import uk.gov.hmrc.rdscandeproxy.euvat.models.responses.*
 import uk.gov.hmrc.rdscandeproxy.euvat.services.EuVatService
@@ -802,6 +802,90 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       }
     }
 
+    "getAllAttachments" - {
+      "return 200 with JSON when service returns attachments" in new SetUp {
+        when(mockEuVatService.getAllAttachments(any())).thenReturn(Future.successful(getAllAttachmentsResponse))
+
+        val json: JsObject = Json.obj(
+          "applicationId" -> 104,
+          "orderBy"       -> 0,
+          "sortOrder"     -> "ASC",
+          "startAt"       -> 0,
+          "maxNumber"     -> 10
+        )
+
+        val result: Future[Result] = controller.getAllAttachments()(
+          fakeRequest.withMethod("POST").withJsonBody(json)
+        )
+
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(getAllAttachmentsResponse)
+      }
+
+      "return 200 when only the applicationId is sent" in new SetUp {
+        when(mockEuVatService.getAllAttachments(any())).thenReturn(Future.successful(getAllAttachmentsResponse))
+
+        val result: Future[Result] = controller.getAllAttachments()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("applicationId" -> 104))
+        )
+
+        status(result) shouldBe OK
+      }
+
+      "return 400 when request body is invalid" in new SetUp {
+        val result: Future[Result] = controller.getAllAttachments()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("invalid" -> "body"))
+        )
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getAllAttachments(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getAllAttachments()(
+          fakeRequest.withMethod("POST").withJsonBody(Json.obj("applicationId" -> 104))
+        )
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve attachments")
+      }
+    }
+
+    "getFullAttachmentDetails" - {
+      "return 200 and the full attachment details when the attachment record exists" in new SetUp {
+        when(mockEuVatService.getFullAttachmentDetails(any()))
+          .thenReturn(Future.successful(Some(getFullAttachmentDetailsResponse)))
+
+        val result: Future[Result] = controller.getFullAttachmentDetails(404L, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe OK
+        contentType(result)   shouldBe Some("application/json")
+        contentAsJson(result) shouldBe Json.toJson(getFullAttachmentDetailsResponse)
+      }
+
+      "return 500 when no attachment record exists for the applicationId and attachmentNumber" in new SetUp {
+        when(mockEuVatService.getFullAttachmentDetails(any()))
+          .thenReturn(Future.successful(None))
+
+        val result: Future[Result] = controller.getFullAttachmentDetails(404L, 99)(fakeRequest.withMethod("GET"))
+
+        status(result)          shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) shouldBe "Failed to retrieve full attachment details"
+      }
+
+      "return 500 when service throws exception" in new SetUp {
+        when(mockEuVatService.getFullAttachmentDetails(any()))
+          .thenReturn(Future.failed(new RuntimeException("DB error")))
+
+        val result: Future[Result] = controller.getFullAttachmentDetails(404L, 4)(fakeRequest.withMethod("GET"))
+
+        status(result)        shouldBe INTERNAL_SERVER_ERROR
+        contentAsString(result) should include("Failed to retrieve full attachment details")
+      }
+    }
+
     "deleteAttachment" - {
       "return 200 with the new update sequence number when the delete succeeds" in new SetUp {
         when(mockEuVatService.deleteAttachment(any()))
@@ -1100,6 +1184,21 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
       fileType             = Some("pdf"),
       fileDescription      = Some("pdf file attached"),
       fileSize             = Some(42),
+      updateSequenceNumber = 10
+    )
+
+    val getAllAttachmentsResponse: GetAllAttachmentsResponse = GetAllAttachmentsResponse(
+      attachments      = List(Attachment(123, Some("file1"), Some("pdf"), Some("test file"), Some(1825))),
+      totalAttachments = 1
+    )
+
+    val getFullAttachmentDetailsResponse: GetFullAttachmentDetailsResponse = GetFullAttachmentDetailsResponse(
+      attachmentNumber     = 11,
+      fileName             = Some("test.pdf"),
+      fileType             = Some("pdf"),
+      fileDescription      = Some("pdf file attached"),
+      fileSize             = Some(42),
+      fileContent          = Some("dGVzdCBmaWxlIGNvbnRlbnQ="),
       updateSequenceNumber = 10
     )
 
