@@ -23,3 +23,4 @@ GET     /get-attachment-details/:applicationId/:attachmentNumber        uk.gov.h
 POST    /get-all-attachments                                            uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getAllAttachments
 GET     /get-full-attachment-details/:applicationId/:attachmentNumber   uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getFullAttachmentDetails(applicationId: Long, attachmentNumber: Int)
 DELETE  /delete-attachment                                              uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.deleteAttachment
+GET     /get-application-counts/:applicationId                          uk.gov.hmrc.rdscandeproxy.euvat.controllers.EuVatController.getApplicationCounts(applicationId: Long)

@@ -1028,6 +1028,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
               )
             }
           }
+
         }
       }
     }
@@ -1049,6 +1050,7 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
         }
       }
     }
+
   }
 
   def addAttachment(request: AddAttachmentRequest): Future[AddAttachmentResponse] = {
@@ -1113,6 +1115,29 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
           AddAttachmentResponse(
             attachmentNumber     = storedProcedure.getInt("p_attachment_number"),
             updateSequenceNumber = storedProcedure.getInt("p_update_seq_number")
+          )
+        }
+      }
+    }
+  }
+
+  def getApplicationCounts(applicationId: Long): Future[GetApplicationCountsResponse] = {
+    logger.info(s"Calling stored procedure getApplicationCounts for applicationId: $applicationId")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getApplicationCounts(?, ?, ?, ?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", applicationId)
+          storedProcedure.registerOutParameter("p_purchase_count", OracleTypes.NUMBER)
+          storedProcedure.registerOutParameter("p_importation_count", OracleTypes.NUMBER)
+          storedProcedure.registerOutParameter("p_attachment_count", OracleTypes.NUMBER)
+          storedProcedure.execute()
+
+          GetApplicationCountsResponse(
+            purchaseCount   = storedProcedure.getInt("p_purchase_count"),
+            importCount     = storedProcedure.getInt("p_importation_count"),
+            attachmentCount = storedProcedure.getInt("p_attachment_count")
           )
         }
       }
