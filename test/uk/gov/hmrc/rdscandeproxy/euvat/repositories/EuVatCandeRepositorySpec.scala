@@ -1533,4 +1533,24 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       thrown.getMessage should include("SP failure")
     }
   }
+
+  "getApplicationCounts" should {
+    "return all three counts from the stored procedure" in {
+      when(mockCallableStatement.getInt("p_purchase_count")).thenReturn(2)
+      when(mockCallableStatement.getInt("p_importation_count")).thenReturn(3)
+      when(mockCallableStatement.getInt("p_attachment_count")).thenReturn(4)
+
+      val result = repository.getApplicationCounts(133L).futureValue
+
+      result shouldBe GetApplicationCountsResponse(purchaseCount = 2, importCount = 3, attachmentCount = 4)
+      verify(mockConnection).prepareCall(
+        "{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getApplicationCounts(?, ?, ?, ?)}"
+      )
+      verify(mockCallableStatement).setLong("p_application_id", 133L)
+      verify(mockCallableStatement).registerOutParameter("p_purchase_count", OracleTypes.NUMBER)
+      verify(mockCallableStatement).registerOutParameter("p_importation_count", OracleTypes.NUMBER)
+      verify(mockCallableStatement).registerOutParameter("p_attachment_count", OracleTypes.NUMBER)
+      verify(mockCallableStatement).execute()
+    }
+  }
 }
