@@ -478,4 +478,15 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getSubmissionDateTime(applicationId: Long): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getSubmissionDateTime(applicationId)
+        .map(response => Ok(Json.toJson(response)))
+        .recover { case ex: Exception =>
+          logger.error(s"Error while retrieving submission datetime for application $applicationId", ex)
+          InternalServerError("Failed to retrieve submission datetime")
+        }
+    }
+
 }

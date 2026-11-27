@@ -106,4 +106,7 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
     euvatCandeRepository
       .deleteAttachment(request)
 
+  def getSubmissionDateTime(applicationId: Long): Future[SubmissionDateTimeResponse] =
+    euvatCandeRepository.getSubmissionDateTime(applicationId)
+
 }
