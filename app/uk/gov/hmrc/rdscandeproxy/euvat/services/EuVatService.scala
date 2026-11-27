@@ -106,4 +106,7 @@ class EuVatService @Inject() (euvatCandeRepository: EuVatCandeRepository)(implic
     euvatCandeRepository
       .deleteAttachment(request)
 
+  def getApplicationForSubmission(applicationId: Long): Future[GetApplicationForSubmissionResponse] =
+    euvatCandeRepository.getApplicationForSubmission(applicationId)
+
 }
