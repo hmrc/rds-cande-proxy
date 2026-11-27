@@ -478,4 +478,20 @@ class EuVatController @Inject() (authorise: AuthAction, euVatService: EuVatServi
       }
     }
 
+  def getApplicationForSubmission(applicationId: Long): Action[AnyContent] =
+    authorise.async { implicit request =>
+      euVatService
+        .getApplicationForSubmission(applicationId)
+        .map(response => Ok(Json.toJson(response)))
+        .recover { case ex: Exception =>
+          logger.error(s"Error while retrieving application $applicationId for submission", ex)
+          InternalServerError(
+            Json.obj(
+              "status"  -> 500,
+              "error"   -> "Internal server error",
+              "message" -> "Database connection issue or server issue"
+            )
+          )
+        }
+    }
 }

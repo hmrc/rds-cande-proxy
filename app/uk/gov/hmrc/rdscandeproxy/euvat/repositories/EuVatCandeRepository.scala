@@ -1118,4 +1118,128 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getApplicationForSubmission(applicationId: Long): Future[GetApplicationForSubmissionResponse] = {
+    logger.info(s"Calling stored procedure getApplicationForSubmission for applicationId: $applicationId")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getApplicationForSubmission(?, ?, ? ,? ,?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", applicationId)
+          storedProcedure.registerOutParameter("p_application_details", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_importations", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_purchase_details", OracleTypes.CURSOR)
+          storedProcedure.registerOutParameter("p_attachments", OracleTypes.CURSOR)
+          storedProcedure.execute()
+
+          val applicationDetails = readCursor(storedProcedure.getObject("p_application_details", classOf[ResultSet])) { cursor =>
+            SubmissionApplicationDetails(
+              applicationId              = cursor.getLong("application_id"),
+              applicationNumber          = Option(cursor.getString("application_number")),
+              refundingCountryCode       = Option(cursor.getString("refunding_country_code")),
+              applicationVersion         = Option(cursor.getTimestamp("application_version")).map(_.toLocalDateTime),
+              periodStartDate            = Option(cursor.getTimestamp("period_start_date")).map(_.toLocalDateTime),
+              periodEndDate              = Option(cursor.getTimestamp("period_end_date")).map(_.toLocalDateTime),
+              applicantVatRegNumber      = Option(cursor.getString("applicant_vat_reg_number")),
+              applicantEmailAddress      = Option(cursor.getString("applicant_email_address")),
+              applicantTelephoneNumber   = Option(cursor.getString("applicant_telephone_num")),
+              representativeId           = Option(cursor.getString("representative_id")),
+              representativeIdType       = Option(cursor.getString("representative_id_type")),
+              representativeCountry      = Option(cursor.getString("representative_country")),
+              representativeEmailAddress = Option(cursor.getString("representative_email_address")),
+              representativeTelephoneNum = Option(cursor.getString("representative_telephone_num")),
+              applicationLanguage        = Option(cursor.getString("application_language")),
+              bankAccountOwnerName       = Option(cursor.getString("bank_account_owner_name")),
+              bankAccountOwnerType       = Option(cursor.getString("bank_account_owner_type")),
+              ibanCode                   = Option(cursor.getString("iban_code")),
+              bicCode                    = Option(cursor.getString("bic_code")),
+              bankAccountCurrencyCode    = Option(cursor.getString("bank_account_currency_code")),
+              businessActivityCode1      = Option(cursor.getString("business_activity_code1")),
+              businessActivityCode2      = Option(cursor.getString("business_activity_code2")),
+              businessActivityCode3      = Option(cursor.getString("business_activity_code3")),
+              messageId                  = Option(cursor.getString("message_id")),
+              correlationId              = Option(cursor.getString("correlation_id")),
+              cipherText                 = Option(cursor.getString("cipher_text")),
+              encryptionStatus           = Option(cursor.getString("encryption_status")),
+              updateSeqNumber            = cursor.getInt("update_seq_number"),
+              applicationStatus          = Option(cursor.getString("application_status")),
+              submissionStatus           = Option(cursor.getString("submission_status"))
+            )
+          }
+
+          val importationDetails = readCursor(storedProcedure.getObject("p_importations", classOf[ResultSet])) { cursor =>
+            SubmissionImportationDetails(
+              itemNumber              = Option(cursor.getInt("item_number")),
+              goodsDescriptionCode    = Option(cursor.getString("goods_description_category")),
+              goodsDescriptionText    = Option(cursor.getString("goods_description_text")),
+              goodsDescriptionSubCode = Option(cursor.getString("goods_description_subcategory")),
+              sadReferenceNumber      = Option(cursor.getString("sad_reference_number")),
+              hasSadReferenceNumber   = Option(cursor.getString("has_sad_reference_number")),
+              referenceInformation    = Option(cursor.getString("reference_information")),
+              issuingDate             = Option(cursor.getTimestamp("issuing_date")).map(_.toLocalDateTime),
+              supplierName            = Option(cursor.getString("supplier_name")),
+              supplierAddressLine1    = Option(cursor.getString("supplier_address_1")),
+              supplierAddressLine2    = Option(cursor.getString("supplier_address_2")),
+              supplierAddressLine3    = Option(cursor.getString("supplier_address_3")),
+              supplierCountryCode     = Option(cursor.getString("supplier_country_code")),
+              currencyCode            = Option(cursor.getString("currency_code")),
+              taxableAmount           = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)),
+              vatAmount               = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)),
+              deductibleVatAmount     = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_))
+            )
+          }
+
+          val purchaseDetails = readCursor(storedProcedure.getObject("p_purchase_details", classOf[ResultSet])) { cursor =>
+            SubmissionPurchaseDetails(
+              itemNumber                 = Option(cursor.getInt("item_number")),
+              goodsDescriptionCode       = Option(cursor.getString("goods_description_category")),
+              goodsDescriptionText       = Option(cursor.getString("goods_description_text")),
+              goodsDescriptionSubCode    = Option(cursor.getString("goods_description_subcategory")),
+              simplifiedInvoiceIndicator = Option(cursor.getString("simplified_invoice_indicator")),
+              supplierName               = Option(cursor.getString("supplier_name")),
+              supplierAddressLine1       = Option(cursor.getString("supplier_address_1")),
+              supplierAddressLine2       = Option(cursor.getString("supplier_address_2")),
+              supplierAddressLine3       = Option(cursor.getString("supplier_address_3")),
+              supplierVatNumber          = Option(cursor.getString("supplier_vat_reg_number")),
+              supplierTaxIdentifier      = Option(cursor.getString("supplier_tax_identifier")),
+              invoiceDate                = Option(cursor.getTimestamp("invoice_date")).map(_.toLocalDateTime),
+              invoiceNumber              = Option(cursor.getString("invoice_number")),
+              currencyCode               = Option(cursor.getString("currency_code")),
+              taxableAmount              = Option(cursor.getBigDecimal("taxable_amount")).map(BigDecimal(_)),
+              vatAmount                  = Option(cursor.getBigDecimal("vat_amount")).map(BigDecimal(_)),
+              deductibleVatAmount        = Option(cursor.getBigDecimal("deductible_vat_amount")).map(BigDecimal(_))
+            )
+          }
+
+          val attachmentDetails = readCursor(storedProcedure.getObject("p_attachments", classOf[ResultSet])) { cursor =>
+            SubmissionAttachmentDetails(
+              attachmentNumber = Option(cursor.getInt("attachment_number")),
+              fileName         = Option(cursor.getString("file_name")),
+              fileType         = Option(cursor.getString("file_type")),
+              fileDescription  = Option(cursor.getString("file_description")),
+              fileSize         = Option(cursor.getBigDecimal("file_size")).map(_.intValue),
+              fileContent      = Option(cursor.getBytes("file_content")).map(Base64.getEncoder.encodeToString)
+            )
+          }
+
+          GetApplicationForSubmissionResponse(applicationDetails, importationDetails, purchaseDetails, attachmentDetails)
+
+        }
+      }
+    }
+  }
+
+  private def readCursor[A](resultset: ResultSet)(mapRow: ResultSet => A): List[A] =
+    Option(resultset) match {
+      case None => List.empty
+      case Some(rs) =>
+        Using.resource(rs) { cursor =>
+          Iterator
+            .continually(cursor.next())
+            .takeWhile(identity)
+            .map(_ => mapRow(cursor))
+            .toList
+        }
+    }
 }
