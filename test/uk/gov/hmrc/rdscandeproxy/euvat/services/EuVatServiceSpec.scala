@@ -684,4 +684,22 @@ class EuVatServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with 
         result.getMessage should include("bang")
   }
 
+  "EuVatService.getSubmissionDateTime" should {
+    val applicationId = 133L
+    val response = SubmissionDateTimeResponse(LocalDateTime.of(2026, 11, 27, 13, 43))
+
+    "return the submission datetime from the repository" in {
+      when(mockConnector.getSubmissionDateTime(applicationId)).thenReturn(Future.successful(response))
+
+      service.getSubmissionDateTime(applicationId).futureValue shouldBe response
+    }
+
+    "propagate repository failures" in {
+      when(mockConnector.getSubmissionDateTime(applicationId))
+        .thenReturn(Future.failed(new Exception("DB error")))
+
+      service.getSubmissionDateTime(applicationId).failed.futureValue.getMessage shouldBe "DB error"
+    }
+  }
+
 }

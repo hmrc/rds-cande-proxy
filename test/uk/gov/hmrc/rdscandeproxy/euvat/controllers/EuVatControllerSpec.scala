@@ -1221,4 +1221,15 @@ class EuVatControllerSpec extends SpecBase with MockitoSugar {
 
   }
 
+  "getSubmissionDateTime" in new SetUp {
+    val submissionDate = LocalDateTime.of(2026, 11, 27, 13, 43)
+    val response = SubmissionDateTimeResponse(submissionDate)
+    when(mockEuVatService.getSubmissionDateTime(133L)).thenReturn(Future.successful(response))
+
+    val result = controller.getSubmissionDateTime(133L)(fakeRequest.withMethod("GET"))
+
+    status(result)        shouldBe OK
+    contentAsJson(result) shouldBe Json.toJson(response)
+  }
+
 }

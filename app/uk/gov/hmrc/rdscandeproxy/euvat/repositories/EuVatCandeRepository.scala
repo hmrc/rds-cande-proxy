@@ -1118,4 +1118,25 @@ class EuVatCandeRepository @Inject() (@NamedDatabase("euvat") db: Database)(impl
       }
     }
   }
+
+  def getSubmissionDateTime(applicationId: Long): Future[SubmissionDateTimeResponse] = {
+    logger.info(s"Calling stored procedure getSubmissionDateTime for applicationId: $applicationId")
+    Future {
+      db.withConnection { connection =>
+        Using.resource(
+          connection.prepareCall("{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getSubmissionDateTime(?, ?)}")
+        ) { storedProcedure =>
+          storedProcedure.setLong("p_application_id", applicationId)
+          storedProcedure.registerOutParameter("p_submission_datetime", OracleTypes.DATE)
+          storedProcedure.execute()
+
+          val submissionDateTime =
+            Option(storedProcedure.getTimestamp("p_submission_datetime"))
+              .getOrElse(throw new IllegalStateException("Stored procedure returned no submission datetime"))
+
+          SubmissionDateTimeResponse(submissionDateTime.toLocalDateTime)
+        }
+      }
+    }
+  }
 }

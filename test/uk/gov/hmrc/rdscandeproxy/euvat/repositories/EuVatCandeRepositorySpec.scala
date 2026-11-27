@@ -1533,4 +1533,23 @@ class EuVatCandeRepositorySpec extends AnyWordSpec with Matchers with BeforeAndA
       thrown.getMessage should include("SP failure")
     }
   }
+
+  "getSubmissionDateTime" should {
+    "return the submission datetime from the stored procedure" in {
+      val applicationId = 133L
+      val submissionDate = LocalDateTime.of(2026, 11, 27, 13, 43)
+      when(mockCallableStatement.getTimestamp("p_submission_datetime"))
+        .thenReturn(java.sql.Timestamp.valueOf(submissionDate))
+
+      val response = repository.getSubmissionDateTime(applicationId).futureValue
+
+      response shouldBe SubmissionDateTimeResponse(submissionDate)
+      verify(mockConnection).prepareCall(
+        "{call EUVAT_FILE_DATA.EU_VAT_RETRIEVAL.getSubmissionDateTime(?, ?)}"
+      )
+      verify(mockCallableStatement).setLong("p_application_id", applicationId)
+      verify(mockCallableStatement).registerOutParameter("p_submission_datetime", OracleTypes.DATE)
+      verify(mockCallableStatement).execute()
+    }
+  }
 }
